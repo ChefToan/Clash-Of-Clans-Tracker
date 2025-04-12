@@ -103,11 +103,17 @@ struct LeagueInfoView: View {
                         .fontWeight(.semibold)
                         .padding(.top, 15)
                     
-                    // League Icon (same as current league)
-                    LeagueIconView(league: league)
+                    // Get the all-time best league based on trophy count
+                    let bestLeague = getLeagueFromTrophies(player.bestTrophies)
+                    
+                    // Best League Icon - now using the determined league from trophy count
+                    Image(bestLeague.iconName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
                         .padding(.vertical, 10)
                     
-                    Text(league.name)
+                    Text(bestLeague.name)
                         .font(.headline)
                     
                     HStack {
@@ -131,5 +137,35 @@ struct LeagueInfoView: View {
         }
         .background(Constants.bgDark)
         .cornerRadius(Constants.cornerRadius)
+    }
+    
+    // Structure to hold league information
+    struct LeagueInfo {
+        let name: String
+        let iconName: String
+    }
+    
+    // Function to determine league based on trophy count - simplified to group leagues
+    func getLeagueFromTrophies(_ trophies: Int) -> LeagueInfo {
+        switch trophies {
+        case 0..<400:
+            return LeagueInfo(name: "Unranked", iconName: "league_unranked")
+        case 400..<800:
+            return LeagueInfo(name: "Bronze", iconName: "league_bronze")
+        case 800..<1400:
+            return LeagueInfo(name: "Silver", iconName: "league_silver")
+        case 1400..<2000:
+            return LeagueInfo(name: "Gold", iconName: "league_gold")
+        case 2000..<2600:
+            return LeagueInfo(name: "Crystal", iconName: "league_crystal")
+        case 2600..<3200:
+            return LeagueInfo(name: "Master", iconName: "league_master")
+        case 3200..<4100:
+            return LeagueInfo(name: "Champion", iconName: "league_champion")
+        case 4100..<5000:
+            return LeagueInfo(name: "Titan", iconName: "league_titan")
+        default:
+            return LeagueInfo(name: "Legend", iconName: "league_legend")
+        }
     }
 }

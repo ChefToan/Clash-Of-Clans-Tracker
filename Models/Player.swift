@@ -74,7 +74,16 @@ struct Player: Codable, Identifiable {
         
         // Parse role with special handling for "admin" -> "Elder"
         if let roleValue = try container.decodeIfPresent(String.self, forKey: .role) {
-            role = roleValue.lowercased() == "admin" ? "Elder" : roleValue
+            switch roleValue.lowercased() {
+            case "admin":
+                role = "Elder"
+            case "coleader":
+                role = "Co-Leader"
+            case "member":
+                role = "Member"
+            default:
+                role = roleValue
+            }
         } else {
             role = nil
         }

@@ -16,53 +16,47 @@ struct PlayerStatsSection: View {
             
             // Content
             VStack(spacing: 0) {
-                // Level
+                // Level - with icon
                 SimpleStatRow(
                     label: "Level",
                     value: "\(player.expLevel)",
-                    iconColor: Constants.blue
+                    iconImage: "icon_exp"
                 )
                 
-                // Capital Contribution
+                // Capital Contribution - with icon
                 SimpleStatRow(
                     label: "Capital Contribution",
                     value: player.clanCapitalContributions.formatted,
-                    iconColor: Color.gray
                 )
                 
                 // Attacks Won
                 SimpleStatRow(
                     label: "Attacks Won",
-                    value: "\(player.attackWins)",
-                    iconColor: .clear
+                    value: "\(player.attackWins)"
                 )
                 
                 // Defenses Won
                 SimpleStatRow(
                     label: "Defenses Won",
-                    value: "\(player.defenseWins)",
-                    iconColor: .clear
+                    value: "\(player.defenseWins)"
                 )
                 
                 // War Stars Won
                 SimpleStatRow(
                     label: "War Stars Won",
-                    value: "\(player.warStars)",
-                    iconColor: .clear
+                    value: "\(player.warStars)"
                 )
                 
                 // Donations
                 SimpleStatRow(
                     label: "Donations",
-                    value: "\(player.donations)",
-                    iconColor: Constants.green
+                    value: "\(player.donations)"
                 )
                 
                 // Donations Received
                 SimpleStatRow(
                     label: "Donations Received",
-                    value: "\(player.donationsReceived)",
-                    iconColor: Constants.red
+                    value: "\(player.donationsReceived)"
                 )
             }
             .background(Constants.bgCard)

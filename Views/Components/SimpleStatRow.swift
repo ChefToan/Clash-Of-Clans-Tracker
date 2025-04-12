@@ -4,7 +4,8 @@ import SwiftUI
 struct SimpleStatRow: View {
     let label: String
     let value: String
-    let iconColor: Color
+    var iconColor: Color? = nil
+    var iconImage: String? = nil
     
     var body: some View {
         HStack {
@@ -13,7 +14,13 @@ struct SimpleStatRow: View {
             
             Spacer()
             
-            if iconColor != .clear {
+            if let iconImage = iconImage, let image = UIImage(named: iconImage) {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 20, height: 20)
+                    .padding(.trailing, 5)
+            } else if let iconColor = iconColor, iconColor != .clear {
                 Rectangle()
                     .fill(iconColor)
                     .frame(width: 20, height: 20)

@@ -18,7 +18,7 @@ struct PlayerProfileView: View {
             HStack(spacing: 20) {
                 // Left side - Player info
                 VStack(alignment: .center, spacing: 10) {
-                    Text(player.name.uppercased())
+                    Text(player.name)
                         .font(.title2)
                         .fontWeight(.bold)
                     
@@ -45,7 +45,7 @@ struct PlayerProfileView: View {
                         // Clan Badge from API
                         ClanBadgeView(clan: clan)
                         
-                        Text(player.role ?? "Member")
+                        Text(formatClanRole(player.role))
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .padding(.vertical, 8)
@@ -65,5 +65,24 @@ struct PlayerProfileView: View {
         }
         .background(Constants.bgDark)
         .cornerRadius(Constants.cornerRadius)
+    }
+    
+    // Format clan role to look nicer
+    private func formatClanRole(_ role: String?) -> String {
+        guard let role = role else { return "Member" }
+        
+        switch role.lowercased() {
+        case "coleader":
+            return "Co-Leader"
+        case "admin", "elder":
+            return "Elder"
+        case "member":
+            return "Member"
+        default:
+            // Capitalize first letter of each word for other roles
+            return role.split(separator: " ")
+                .map { $0.prefix(1).uppercased() + $0.dropFirst().lowercased() }
+                .joined(separator: " ")
+        }
     }
 }

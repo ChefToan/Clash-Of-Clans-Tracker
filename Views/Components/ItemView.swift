@@ -37,12 +37,14 @@ struct ItemView: View {
                 .font(.caption)
                 .fontWeight(.bold)
                 .padding(4)
-                .frame(minWidth: 30)
+                .frame(width: 40) // Set fixed width that fits 3 digits
                 .background(
                     item.isMaxed ? Constants.yellow : Color.black.opacity(0.7)
                 )
                 .foregroundColor(item.isMaxed ? .black : .white)
                 .cornerRadius(Constants.innerCornerRadius/3)
+                .lineLimit(1) // Ensure text stays on one line
+                .minimumScaleFactor(0.8) // Allow scaling down if needed
         }
         .overlay(
             showDebug ? IconDebugHelper(item: item) : nil
