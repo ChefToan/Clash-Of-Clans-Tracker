@@ -3,7 +3,7 @@ import Foundation
 import Combine
 import SwiftUI
 
-class PlayerViewModel: ObservableObject {
+class PlayerViewModel: ObservableObject, ProgressCalculator {
     @Published var player: Player?
     @Published var isLoading = false
     @Published var errorMessage: String?

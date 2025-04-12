@@ -5,7 +5,7 @@ import SwiftUI
 import SwiftData
 
 @MainActor
-class MyProfileViewModel: ObservableObject {
+class MyProfileViewModel: ObservableObject, ProgressCalculator {
     @Published var player: Player?
     @Published var isLoading = true
     @Published var errorMessage: String?
@@ -52,32 +52,25 @@ class MyProfileViewModel: ObservableObject {
     func loadProfile() async {
         isLoading = true
         
-        do {
-            // Load profile from SwiftData
-            let savedPlayer = await DataController.shared.getMyProfile()
-            if let player = savedPlayer {
-                self.player = player
-                
-                // Check if in Legend League
-                if let league = player.league, league.name.contains("Legend") {
-                    isLegendLeague = true
-                    loadRankingsData(tag: player.tag)
-                }
-                
-                // If the saved player has no troop data, try to refresh from API
-                if player.troops == nil || player.troops?.isEmpty == true {
-                    print("No troop data found, refreshing from API")
-                    await refreshProfile()
-                } else {
-                    isLoading = false
-                }
+        // Load profile from SwiftData
+        let savedPlayer = await DataController.shared.getMyProfile()
+        if let player = savedPlayer {
+            self.player = player
+            
+            // Check if in Legend League
+            if let league = player.league, league.name.contains("Legend") {
+                isLegendLeague = true
+                loadRankingsData(tag: player.tag)
+            }
+            
+            // If the saved player has no troop data, try to refresh from API
+            if player.troops == nil || player.troops?.isEmpty == true {
+                print("No troop data found, refreshing from API")
+                await refreshProfile()
             } else {
                 isLoading = false
             }
-        } catch {
-            print("Error loading profile: \(error)")
-            errorMessage = "Failed to load profile: \(error.localizedDescription)"
-            showError = true
+        } else {
             isLoading = false
         }
     }

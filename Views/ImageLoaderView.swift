@@ -223,11 +223,17 @@ struct UnitIconView: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: size, height: size)
         } else {
-            // Fallback placeholder
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: size, height: size)
-                .cornerRadius(Constants.innerCornerRadius/2)
+            // Fallback placeholder with unit name initial
+            ZStack {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: size, height: size)
+                    .cornerRadius(Constants.innerCornerRadius/2)
+                
+                Text(item.name.prefix(1))
+                    .font(.headline)
+                    .foregroundColor(.white)
+            }
         }
     }
     
@@ -242,18 +248,45 @@ struct UnitIconView: View {
         } else if isSiegeMachine(item) {
             return "siege_\(name)"
         } else if isHero(item) {
+            // Special case for Minion Prince
+            if item.name.lowercased() == "minion prince" {
+                return "hero_minion_prince"
+            }
             return "hero_\(name)"
         } else if isHeroEquipment(item) {
             return "equip_\(name)"
         } else if isSpell(item) {
-            if isDarkSpell(item) {
-                return "dark_spell_\(name)"
-            }
-            return "spell_\(name)"
+            return getSpellImageName(item)
+        } else if isPet(item) {
+            return "pet_\(name)"
         } else {
             // Regular troop
             return "troop_\(name)"
         }
+    }
+    
+    private func isPet(_ item: PlayerItem) -> Bool {
+        let petNames = [
+            "L.A.S.S.I", "Electro Owl", "Mighty Yak", "Unicorn",
+            "Phoenix", "Poison Lizard", "Diggy", "Frosty",
+            "Spirit Fox", "Angry Jelly", "Sneezy"
+        ]
+        
+        return petNames.contains(item.name)
+    }
+    
+    private func getSpellImageName(_ item: PlayerItem) -> String {
+        let baseSpellName = item.name.lowercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "_spell", with: "")
+        
+        // Check if it's a dark spell
+        if isDarkSpell(item) {
+            return "spell_\(baseSpellName)_spell"
+        }
+        
+        // Return standard spell name format
+        return "spell_\(baseSpellName)"
     }
     
     // Helper functions
@@ -280,7 +313,8 @@ struct UnitIconView: View {
         return item.name.contains("King") ||
                item.name.contains("Queen") ||
                item.name.contains("Warden") ||
-               item.name.contains("Champion")
+               item.name.contains("Champion") ||
+               item.name.contains("Minion Prince")
     }
     
     private func isHeroEquipment(_ item: PlayerItem) -> Bool {

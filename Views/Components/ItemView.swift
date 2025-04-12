@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ItemView: View {
     let item: PlayerItem
+    @State private var showDebug = false
     
     var body: some View {
         VStack(alignment: .center, spacing: 2) {
@@ -18,9 +19,18 @@ struct ItemView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .padding(2)
+                } else {
+                    // Fallback if image not found
+                    Text(item.name.prefix(1))
+                        .font(.caption)
+                        .foregroundColor(.white)
                 }
             }
             .frame(width: 40, height: 40)
+            .onTapGesture {
+                // Enable for debugging only
+                showDebug.toggle()
+            }
             
             // Level number below the icon
             Text("\(item.level)")
@@ -34,13 +44,50 @@ struct ItemView: View {
                 .foregroundColor(item.isMaxed ? .black : .white)
                 .cornerRadius(Constants.innerCornerRadius/3)
         }
+        .overlay(
+            showDebug ? IconDebugHelper(item: item) : nil
+        )
     }
     
     private func getUnitImageName(_ item: PlayerItem) -> String {
         let name = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
         
-        // Determine unit type
-        if item.name.contains("Super") {
+        // Special cases for dark troops to ensure proper naming
+        if item.name.lowercased() == "apprentice warden" {
+            return "dark_apprentice_warden"
+        } else if item.name.lowercased() == "druid" {
+            return "dark_druid"
+        } else if item.name.lowercased() == "furnace" {
+            return "dark_furnace"
+        } else if item.name.lowercased() == "minion" || item.name.lowercased().contains("minion") && !item.name.lowercased().contains("prince") {
+            return "dark_minion"
+        } else if item.name.lowercased() == "hog rider" {
+            return "dark_hog_rider"
+        } else if item.name.lowercased() == "valkyrie" {
+            return "dark_valkyrie"
+        } else if item.name.lowercased() == "golem" {
+            return "dark_golem"
+        } else if item.name.lowercased() == "witch" {
+            return "dark_witch"
+        } else if item.name.lowercased() == "lava hound" {
+            return "dark_lava_hound"
+        } else if item.name.lowercased() == "bowler" {
+            return "dark_bowler"
+        } else if item.name.lowercased() == "ice golem" {
+            return "dark_ice_golem"
+        } else if item.name.lowercased() == "headhunter" {
+            return "dark_headhunter"
+        }
+        
+        // Special cases for other units
+        else if item.name.lowercased() == "minion prince" {
+            return "minion_prince" // Try simplified name
+        } else if item.name.lowercased() == "overgrowth spell" {
+            return "spell_overgrowth" // Remove "_spell" suffix
+        }
+        
+        // Standard naming logic
+        else if item.name.contains("Super") {
             return "super_\(name.replacingOccurrences(of: "super_", with: ""))"
         } else if isDarkElixirTroop(item) {
             return "dark_\(name)"
@@ -71,13 +118,22 @@ struct ItemView: View {
     }
     
     private func getSpellImageName(_ item: PlayerItem) -> String {
-        let name = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
-        let baseName = name.replacingOccurrences(of: "_spell", with: "")
+        let baseSpellName = item.name.lowercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "_spell", with: "")
         
-        if isDarkSpell(item) {
-            return "dark_spell_\(baseName)"
+        // Special case for Overgrowth Spell
+        if baseSpellName == "overgrowth" {
+            return "spell_overgrowth"
         }
-        return "spell_\(baseName)"
+        
+        // Check if it's a dark spell
+        if isDarkSpell(item) {
+            return "spell_\(baseSpellName)_spell"
+        }
+        
+        // Return standard spell name format
+        return "spell_\(baseSpellName)"
     }
     
     private func isDarkElixirTroop(_ item: PlayerItem) -> Bool {
@@ -87,25 +143,31 @@ struct ItemView: View {
             "apprentice warden", "druid", "furnace"
         ]
         
+        // Special case to exclude Minion Prince from being treated as dark troop
+        if item.name.lowercased() == "minion prince" {
+            return false
+        }
+        
         return darkTroopNames.contains { item.name.lowercased().contains($0) }
     }
     
     private func isSiegeMachine(_ item: PlayerItem) -> Bool {
-        let siegeMachines = [
-            "wall wrecker", "battle blimp", "stone slammer", "siege barracks",
-            "log launcher", "flame flinger", "battle drill", "troop launcher"
-        ]
-        
-        return siegeMachines.contains { item.name.lowercased().contains($0) }
+        return item.name.contains("Wall Wrecker") ||
+               item.name.contains("Battle Blimp") ||
+               item.name.contains("Stone Slammer") ||
+               item.name.contains("Siege Barracks") ||
+               item.name.contains("Log Launcher") ||
+               item.name.contains("Flame Flinger") ||
+               item.name.contains("Battle Drill") ||
+               item.name.contains("Troop Launcher")
     }
     
     private func isHero(_ item: PlayerItem) -> Bool {
-        let heroes = [
-            "barbarian king", "archer queen", "grand warden", "royal champion",
-            "battle machine", "battle copter", "minion prince"
-        ]
-        
-        return heroes.contains { item.name.lowercased().contains($0) }
+        return item.name.contains("King") ||
+               item.name.contains("Queen") ||
+               item.name.contains("Warden") ||
+               item.name.contains("Champion") ||
+               (item.name.contains("Minion Prince") && !item.name.contains("Apprentice"))
     }
     
     private func isHeroEquipment(_ item: PlayerItem) -> Bool {
@@ -122,5 +184,18 @@ struct ItemView: View {
         ]
         
         return darkSpellNames.contains { item.name.lowercased().contains($0) }
+    }
+    
+    private func isSuperTroop(_ item: PlayerItem) -> Bool {
+        // Full list of super troops
+        let superTroops = [
+            "Super Barbarian", "Super Archer", "Sneaky Goblin",
+            "Super Wall Breaker", "Super Giant", "Rocket Balloon",
+            "Super Wizard", "Super Dragon", "Inferno Dragon",
+            "Super Valkyrie", "Super Witch", "Ice Hound",
+            "Super Bowler", "Super Miner", "Super Hog Rider"
+        ]
+        
+        return superTroops.contains(item.name) || item.superTroopIsActive == true
     }
 }

@@ -1,3 +1,4 @@
+// TrophyProgressionView.swift
 import SwiftUI
 
 struct TrophyProgressionView: View {
@@ -18,7 +19,7 @@ struct TrophyProgressionView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color.black.opacity(0.3))
             
-            // Chart container
+            // Content
             ZStack {
                 if isLoading {
                     ProgressView()
@@ -111,9 +112,10 @@ struct TrophyProgressionView: View {
                     .frame(height: 100) // Minimum height when error
                 }
             }
-            .padding(4) // Reduced padding
+            .padding()
+            .background(Constants.bgCard)
         }
-        .background(Color.black.opacity(0.7)) // Single background layer
+        .background(Constants.bgDark)
         .cornerRadius(Constants.cornerRadius)
         .onAppear {
             loadChart()
@@ -129,11 +131,9 @@ struct TrophyProgressionView: View {
             if let url = apiService.getPlayerChartImageURL(tag: player.tag) {
                 self.chartURL = url
                 self.isLoading = false
-                print("Debug - Loading chart from URL: \(url)")
             } else {
                 self.errorMessage = "Invalid player tag format"
                 self.isLoading = false
-                print("Debug - Failed to create chart URL for tag: \(player.tag)")
             }
         }
     }

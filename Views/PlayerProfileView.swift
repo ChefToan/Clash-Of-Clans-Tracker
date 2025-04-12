@@ -6,6 +6,7 @@ struct PlayerProfileView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Header
             Text("PLAYER PROFILE")
                 .font(.headline)
                 .fontWeight(.semibold)
@@ -13,6 +14,7 @@ struct PlayerProfileView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color.black.opacity(0.3))
             
+            // Content
             HStack(spacing: 20) {
                 // Left side - Player info
                 VStack(alignment: .center, spacing: 10) {

@@ -96,6 +96,15 @@ class UnitSorter {
         "overgrowth spell": 14
     ]
     
+    // Known super troops
+    static let superTroops = [
+        "Super Barbarian", "Super Archer", "Sneaky Goblin",
+        "Super Wall Breaker", "Super Giant", "Rocket Balloon",
+        "Super Wizard", "Super Dragon", "Inferno Dragon",
+        "Super Valkyrie", "Super Witch", "Ice Hound",
+        "Super Bowler", "Super Miner", "Super Hog Rider"
+    ]
+    
     // In the filterAndSortItems function
     static func filterAndSortItems(_ player: Player) -> (heroes: [PlayerItem], pets: [PlayerItem], troops: [PlayerItem], darkTroops: [PlayerItem], siegeMachines: [PlayerItem], spells: [PlayerItem]) {
         var heroes: [PlayerItem] = []
@@ -116,27 +125,30 @@ class UnitSorter {
         
         // Process troops
         if let troops = player.troops {
-            // Find all pets first
+            // Find all pets first (filter out any with level 0)
             let petNames = [
                 "L.A.S.S.I", "Electro Owl", "Mighty Yak", "Unicorn",
                 "Phoenix", "Poison Lizard", "Diggy", "Frosty",
                 "Spirit Fox", "Angry Jelly", "Sneezy"
             ]
             
-            // Extract pets
+            // Extract pets and filter out any level 0 pets
             pets = troops.filter { troop in
-                return petNames.contains(troop.name)
+                return petNames.contains(troop.name) && troop.level > 0
             }.sorted { (a, b) -> Bool in
                 let petIndex1 = petNames.firstIndex(of: a.name) ?? 999
                 let petIndex2 = petNames.firstIndex(of: b.name) ?? 999
                 return petIndex1 < petIndex2
             }
             
-            // Get remaining home village troops (excluding pets and super troops)
-            let remainingTroops = troops.filter {
-                $0.village == "home" &&
-                !petNames.contains($0.name) &&
-                !$0.name.contains("Super")
+            // Filter out super troops first
+            let nonSuperTroops = troops.filter { troop in
+                return !isSuperTroop(troop) && troop.level > 0 && troop.village == "home"
+            }
+            
+            // Get remaining home village troops (excluding pets)
+            let remainingTroops = nonSuperTroops.filter {
+                !petNames.contains($0.name)
             }
             
             // Dark elixir troops
@@ -163,8 +175,8 @@ class UnitSorter {
             }
         }
         
-        // Process spells
-        if let playerSpells = player.spells?.filter({ $0.village == "home" }) {
+        // Process spells and filter out any with level 0
+        if let playerSpells = player.spells?.filter({ $0.village == "home" && $0.level > 0 }) {
             spells = playerSpells.sorted { (a, b) -> Bool in
                 let orderA = spellOrder[a.name.lowercased()] ?? 999
                 let orderB = spellOrder[b.name.lowercased()] ?? 999
@@ -186,5 +198,15 @@ class UnitSorter {
     
     static func isPet(_ item: PlayerItem) -> Bool {
         return petOrder.keys.contains { item.name.lowercased().contains($0) }
+    }
+    
+    static func isSuperTroop(_ item: PlayerItem) -> Bool {
+        return superTroops.contains(item.name) ||
+               item.name.contains("Super") ||
+               item.superTroopIsActive == true ||
+               item.name == "Sneaky Goblin" ||
+               item.name == "Rocket Balloon" ||
+               item.name == "Inferno Dragon" ||
+               item.name == "Ice Hound"
     }
 }

@@ -18,10 +18,11 @@ struct UnitCategoryView: View {
                 .frame(height: 20)
                 .padding(.horizontal)
             
-            // Only show items in a grid without empty placeholders
+            // Only show items in a grid if there are any
             if !items.isEmpty {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 8), spacing: 10) {
-                    ForEach(items) { item in
+                    // Only include items with a level greater than 0
+                    ForEach(items.filter { $0.level > 0 }) { item in
                         ItemView(item: item)
                     }
                 }

@@ -7,6 +7,7 @@ struct LeagueInfoView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Header
             Text("LEAGUE INFO")
                 .font(.headline)
                 .fontWeight(.semibold)
@@ -14,6 +15,7 @@ struct LeagueInfoView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color.black.opacity(0.3))
             
+            // Content
             VStack(spacing: 0) {
                 if let league = player.league {
                     // Current League section
@@ -124,6 +126,7 @@ struct LeagueInfoView: View {
                         .padding()
                 }
             }
+            .padding(.horizontal)
             .background(Constants.bgCard)
         }
         .background(Constants.bgDark)
