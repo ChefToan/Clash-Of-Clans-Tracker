@@ -52,7 +52,19 @@ struct ItemView: View {
     private func getUnitImageName(_ item: PlayerItem) -> String {
         let name = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
         
-        // Special cases for dark troops to ensure proper naming
+        // Special cases for hero equipment
+        if isHeroEquipment(item) {
+            return "equip_\(name)"
+        }
+        
+        // Special cases first
+        if item.name.lowercased() == "minion prince" {
+            return "minion_prince" // Try simplified name
+        } else if item.name.lowercased() == "overgrowth spell" {
+            return "spell_overgrowth" // Remove "_spell" suffix
+        }
+        
+        // Special cases for dark troops
         if item.name.lowercased() == "apprentice warden" {
             return "dark_apprentice_warden"
         } else if item.name.lowercased() == "druid" {
@@ -79,15 +91,8 @@ struct ItemView: View {
             return "dark_headhunter"
         }
         
-        // Special cases for other units
-        else if item.name.lowercased() == "minion prince" {
-            return "minion_prince" // Try simplified name
-        } else if item.name.lowercased() == "overgrowth spell" {
-            return "spell_overgrowth" // Remove "_spell" suffix
-        }
-        
         // Standard naming logic
-        else if item.name.contains("Super") {
+        if item.name.contains("Super") {
             return "super_\(name.replacingOccurrences(of: "super_", with: ""))"
         } else if isDarkElixirTroop(item) {
             return "dark_\(name)"
@@ -171,7 +176,17 @@ struct ItemView: View {
     }
     
     private func isHeroEquipment(_ item: PlayerItem) -> Bool {
-        return item.village == "heroEquipment"
+        return item.village == "heroEquipment" ||
+               [
+                   "Barbarian Puppet", "Rage Vial", "Earthquake Boots", "Vampstache",
+                   "Giant Gauntlet", "Snake Bracelet", "Spiky Ball", "Archer Puppet",
+                   "Invisibility Vial", "Giant Arrow", "Healer Puppet", "Action Figure",
+                   "Frozen Arrow", "Magic Mirror", "Dark Orb", "Henchmen Puppet",
+                   "Metal Pants", "Noble Iron", "Eternal Tome", "Life Gem",
+                   "Healing Tome", "Rage Gem", "Lavaloon Puppet", "Fireball",
+                   "Royal Gem", "Seeking Shield", "Haste Vial", "Hog Rider Puppet",
+                   "Electro Boots", "Rocket Spear"
+               ].contains(item.name)
     }
     
     private func isSpell(_ item: PlayerItem) -> Bool {

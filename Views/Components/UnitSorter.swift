@@ -12,6 +12,15 @@ class UnitSorter {
         "royal champion": 4
     ]
     
+    // Hero equipment mapping
+    static let equipmentByHero: [String: [String]] = [
+        "barbarian king": ["Barbarian Puppet", "Rage Vial", "Earthquake Boots", "Vampstache", "Giant Gauntlet", "Snake Bracelet", "Spiky Ball"],
+        "archer queen": ["Archer Puppet", "Invisibility Vial", "Giant Arrow", "Healer Puppet", "Action Figure", "Frozen Arrow", "Magic Mirror"],
+        "minion prince": ["Dark Orb", "Henchmen Puppet", "Metal Pants", "Noble Iron"],
+        "grand warden": ["Eternal Tome", "Life Gem", "Healing Tome", "Rage Gem", "Lavaloon Puppet", "Fireball"],
+        "royal champion": ["Royal Gem", "Seeking Shield", "Haste Vial", "Hog Rider Puppet", "Electro Boots", "Rocket Spear"]
+    ]
+    
     // Pet ordering
     static let petOrder: [String: Int] = [
         "L.A.S.S.I": 0,
@@ -106,8 +115,13 @@ class UnitSorter {
     ]
     
     // In the filterAndSortItems function
-    static func filterAndSortItems(_ player: Player) -> (heroes: [PlayerItem], pets: [PlayerItem], troops: [PlayerItem], darkTroops: [PlayerItem], siegeMachines: [PlayerItem], spells: [PlayerItem]) {
+    static func filterAndSortItems(_ player: Player) -> (heroes: [PlayerItem], heroEquipment: [[PlayerItem]], pets: [PlayerItem], troops: [PlayerItem], darkTroops: [PlayerItem], siegeMachines: [PlayerItem], spells: [PlayerItem]) {
         var heroes: [PlayerItem] = []
+        var kingEquipment: [PlayerItem] = []
+        var queenEquipment: [PlayerItem] = []
+        var minionPrinceEquipment: [PlayerItem] = []
+        var wardenEquipment: [PlayerItem] = []
+        var championEquipment: [PlayerItem] = []
         var pets: [PlayerItem] = []
         var regularTroops: [PlayerItem] = []
         var darkTroops: [PlayerItem] = []
@@ -119,6 +133,55 @@ class UnitSorter {
             heroes = playerHeroes.sorted { (a, b) -> Bool in
                 let orderA = heroOrder[a.name.lowercased()] ?? 999
                 let orderB = heroOrder[b.name.lowercased()] ?? 999
+                return orderA < orderB
+            }
+        }
+        
+        // Process hero equipment
+        if let heroEquipmentItems = player.heroEquipment?.filter({ $0.village == "home" && $0.level > 0 }) {
+            for item in heroEquipmentItems {
+                // Assign equipment to the appropriate hero based on the equipment name
+                if equipmentByHero["barbarian king"]?.contains(item.name) ?? false {
+                    kingEquipment.append(item)
+                } else if equipmentByHero["archer queen"]?.contains(item.name) ?? false {
+                    queenEquipment.append(item)
+                } else if equipmentByHero["minion prince"]?.contains(item.name) ?? false {
+                    minionPrinceEquipment.append(item)
+                } else if equipmentByHero["grand warden"]?.contains(item.name) ?? false {
+                    wardenEquipment.append(item)
+                } else if equipmentByHero["royal champion"]?.contains(item.name) ?? false {
+                    championEquipment.append(item)
+                }
+            }
+            
+            // Sort equipment based on specified order
+            kingEquipment.sort { (a, b) -> Bool in
+                let orderA = equipmentByHero["barbarian king"]?.firstIndex(of: a.name) ?? 999
+                let orderB = equipmentByHero["barbarian king"]?.firstIndex(of: b.name) ?? 999
+                return orderA < orderB
+            }
+            
+            queenEquipment.sort { (a, b) -> Bool in
+                let orderA = equipmentByHero["archer queen"]?.firstIndex(of: a.name) ?? 999
+                let orderB = equipmentByHero["archer queen"]?.firstIndex(of: b.name) ?? 999
+                return orderA < orderB
+            }
+            
+            minionPrinceEquipment.sort { (a, b) -> Bool in
+                let orderA = equipmentByHero["minion prince"]?.firstIndex(of: a.name) ?? 999
+                let orderB = equipmentByHero["minion prince"]?.firstIndex(of: b.name) ?? 999
+                return orderA < orderB
+            }
+            
+            wardenEquipment.sort { (a, b) -> Bool in
+                let orderA = equipmentByHero["grand warden"]?.firstIndex(of: a.name) ?? 999
+                let orderB = equipmentByHero["grand warden"]?.firstIndex(of: b.name) ?? 999
+                return orderA < orderB
+            }
+            
+            championEquipment.sort { (a, b) -> Bool in
+                let orderA = equipmentByHero["royal champion"]?.firstIndex(of: a.name) ?? 999
+                let orderB = equipmentByHero["royal champion"]?.firstIndex(of: b.name) ?? 999
                 return orderA < orderB
             }
         }
@@ -184,7 +247,9 @@ class UnitSorter {
             }
         }
         
-        return (heroes, pets, regularTroops, darkTroops, siegeMachines, spells)
+        // Return all categories
+        let allHeroEquipment = [kingEquipment, queenEquipment, minionPrinceEquipment, wardenEquipment, championEquipment]
+        return (heroes, allHeroEquipment, pets, regularTroops, darkTroops, siegeMachines, spells)
     }
     
     // Helper functions

@@ -168,7 +168,7 @@ struct Season: Codable {
 }
 
 // Player items like troops, heroes, spells
-struct PlayerItem: Codable, Identifiable {
+struct PlayerItem: Codable, Identifiable, Equatable {
     var id: String { name + String(level) }
     let name: String
     let level: Int

@@ -57,14 +57,13 @@ struct IconDebugHelper: View {
     private func getUnitImageName(_ item: PlayerItem) -> String {
         let name = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
         
-        // Special cases for dark troops
-        if item.name.lowercased() == "apprentice warden" {
-            return "dark_apprentice_warden"
-        } else if item.name.lowercased() == "druid" {
-            return "dark_druid"
-        } else if item.name.lowercased() == "furnace" {
-            return "dark_furnace"
-        } else if item.name.lowercased() == "minion prince" {
+        // Hero equipment
+        if isHeroEquipment(item) {
+            return "equip_\(name)"
+        }
+        
+        // Special cases
+        if item.name.lowercased() == "minion prince" {
             return "minion_prince"
         } else if item.name.lowercased() == "overgrowth spell" {
             return "spell_overgrowth"
@@ -79,8 +78,6 @@ struct IconDebugHelper: View {
             return "siege_\(name)"
         } else if isHero(item) {
             return "hero_\(name)"
-        } else if isHeroEquipment(item) {
-            return "equip_\(name)"
         } else if isSpell(item) {
             if isDarkSpell(item) {
                 return "spell_\(name.replacingOccurrences(of: "_spell", with: ""))_spell"
@@ -96,6 +93,14 @@ struct IconDebugHelper: View {
     private func alternateNames(for item: PlayerItem) -> [String] {
         var names: [String] = []
         let baseName = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
+        
+        // Try different naming conventions for equipment
+        if isHeroEquipment(item) {
+            names.append("equip_\(baseName)")
+            names.append(baseName)
+            names.append("equip_\(item.name.replacingOccurrences(of: " ", with: "_"))")
+            return names
+        }
         
         // Try different naming conventions
         names.append("dark_\(baseName)")
@@ -123,7 +128,21 @@ struct IconDebugHelper: View {
         return names
     }
     
-    // Helper functions - same as in ItemView
+    // Helper functions
+    private func isHeroEquipment(_ item: PlayerItem) -> Bool {
+        return item.village == "heroEquipment" ||
+               [
+                   "Barbarian Puppet", "Rage Vial", "Earthquake Boots", "Vampstache",
+                   "Giant Gauntlet", "Snake Bracelet", "Spiky Ball", "Archer Puppet",
+                   "Invisibility Vial", "Giant Arrow", "Healer Puppet", "Action Figure",
+                   "Frozen Arrow", "Magic Mirror", "Dark Orb", "Henchmen Puppet",
+                   "Metal Pants", "Noble Iron", "Eternal Tome", "Life Gem",
+                   "Healing Tome", "Rage Gem", "Lavaloon Puppet", "Fireball",
+                   "Royal Gem", "Seeking Shield", "Haste Vial", "Hog Rider Puppet",
+                   "Electro Boots", "Rocket Spear"
+               ].contains(item.name)
+    }
+    
     private func isPet(_ item: PlayerItem) -> Bool {
         let petNames = ["L.A.S.S.I", "Electro Owl", "Mighty Yak", "Unicorn", "Phoenix", "Poison Lizard", "Diggy", "Frosty", "Spirit Fox", "Angry Jelly", "Sneezy"]
         return petNames.contains(item.name)
@@ -147,10 +166,6 @@ struct IconDebugHelper: View {
     private func isHero(_ item: PlayerItem) -> Bool {
         let heroNames = ["king", "queen", "warden", "champion", "minion prince"]
         return heroNames.contains { item.name.lowercased().contains($0) } && !item.name.lowercased().contains("apprentice")
-    }
-    
-    private func isHeroEquipment(_ item: PlayerItem) -> Bool {
-        return item.village == "heroEquipment"
     }
     
     private func isSpell(_ item: PlayerItem) -> Bool {

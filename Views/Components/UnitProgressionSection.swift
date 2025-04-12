@@ -23,7 +23,10 @@ struct UnitProgressionSection: View {
                 
                 // Filter and process all units
                 let unitData = UnitSorter.filterAndSortItems(player)
-                let allItems = unitData.heroes + unitData.pets + unitData.troops + unitData.darkTroops + unitData.siegeMachines + unitData.spells
+                
+                // Calculate all items for total progress
+                let allHeroEquipments = unitData.heroEquipment.flatMap { $0 }
+                let allItems = unitData.heroes + allHeroEquipments + unitData.pets + unitData.troops + unitData.darkTroops + unitData.siegeMachines + unitData.spells
                 
                 // Total progress bar
                 let totalProgress = calculator.calculateProgress(allItems)
@@ -38,6 +41,16 @@ struct UnitProgressionSection: View {
                         items: unitData.heroes,
                         progress: calculator.calculateProgress(unitData.heroes),
                         color: Constants.orange
+                    )
+                }
+                
+                // Hero Equipment category
+                if !unitData.heroEquipment.flatMap({ $0 }).isEmpty {
+                    HeroEquipmentView(
+                        title: "HERO EQUIPMENT",
+                        equipmentGroups: unitData.heroEquipment,
+                        progress: calculator.calculateProgress(unitData.heroEquipment.flatMap { $0 }),
+                        calculator: calculator
                     )
                 }
                 
