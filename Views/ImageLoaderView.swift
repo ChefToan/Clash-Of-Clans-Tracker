@@ -58,14 +58,20 @@ struct RemoteImageView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: width, height: height)
             } else {
-                // Placeholder
-                ZStack {
-                    Rectangle()
-                        .fill(Color.purple.opacity(0.5))
+                // Image placeholder from assets
+                if let placeholderImage = UIImage(named: placeholder) {
+                    Image(uiImage: placeholderImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
                         .frame(width: width, height: height)
-                        .cornerRadius(10)
-                        
-                    VStack {
+                } else {
+                    // Fallback placeholder if image not found
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.purple.opacity(0.5))
+                            .frame(width: width, height: height)
+                            .cornerRadius(10)
+                            
                         Text(placeholder)
                             .font(.caption)
                             .foregroundColor(.white)
@@ -94,25 +100,31 @@ struct LeagueIconView: View {
         if let league = league {
             RemoteImageView(
                 urlString: league.iconUrls?.small,
-                placeholder: "League Icon",
+                placeholder: "league_\(league.name.lowercased().replacingOccurrences(of: " ", with: "_"))",
                 width: size,
                 height: size
             )
         } else {
-            // Placeholder if league is nil
-            ZStack {
-                Rectangle()
-                    .fill(Color.purple.opacity(0.5))
+            if let leagueImage = UIImage(named: "league_unranked") {
+                Image(uiImage: leagueImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
-                    .cornerRadius(10)
-                    
-                VStack {
-                    Text("League")
-                        .font(.caption)
-                    Text("Icon")
-                        .font(.caption)
+            } else {
+                ZStack {
+                    Rectangle()
+                        .fill(Color.purple.opacity(0.5))
+                        .frame(width: size, height: size)
+                        .cornerRadius(10)
+                        
+                    VStack {
+                        Text("League")
+                            .font(.caption)
+                        Text("Icon")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
                 }
-                .foregroundColor(.white)
             }
         }
     }
@@ -132,31 +144,37 @@ struct ClanBadgeView: View {
         if let clan = clan {
             RemoteImageView(
                 urlString: clan.badgeUrls?.small,
-                placeholder: "Clan Badge",
+                placeholder: "clan_badge",
                 width: size,
                 height: size
             )
         } else {
-            // Placeholder if clan is nil
-            ZStack {
-                Rectangle()
-                    .fill(Color.purple.opacity(0.5))
+            if let clanImage = UIImage(named: "clan_default") {
+                Image(uiImage: clanImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
-                    .cornerRadius(10)
-                    
-                VStack {
-                    Text("Clan")
-                        .font(.caption)
-                    Text("Badge")
-                        .font(.caption)
+            } else {
+                ZStack {
+                    Rectangle()
+                        .fill(Color.purple.opacity(0.5))
+                        .frame(width: size, height: size)
+                        .cornerRadius(10)
+                        
+                    VStack {
+                        Text("Clan")
+                            .font(.caption)
+                        Text("Badge")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.white)
                 }
-                .foregroundColor(.white)
             }
         }
     }
 }
 
-// Town Hall Icon View (Placeholder for now)
+// Town Hall Icon View
 struct TownHallIconView: View {
     let level: Int
     let size: CGFloat
@@ -167,16 +185,118 @@ struct TownHallIconView: View {
     }
     
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(Color(hex: "#765234"))
-                .frame(width: size, height: size * 0.6)
-                .cornerRadius(5)
-            
-            Text("TH \(level)")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
+        if let thImage = UIImage(named: "th\(level)") {
+            Image(uiImage: thImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else {
+            ZStack {
+                Rectangle()
+                    .fill(Color(hex: "#765234"))
+                    .frame(width: size, height: size * 0.6)
+                    .cornerRadius(5)
+                
+                Text("TH \(level)")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
         }
+    }
+}
+
+// Unit Icon View - For use in ItemView
+struct UnitIconView: View {
+    let item: PlayerItem
+    let size: CGFloat
+    
+    init(item: PlayerItem, size: CGFloat = 40) {
+        self.item = item
+        self.size = size
+    }
+    
+    var body: some View {
+        if let unitImage = UIImage(named: getUnitImageName(item)) {
+            Image(uiImage: unitImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else {
+            // Fallback placeholder
+            Rectangle()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: size, height: size)
+                .cornerRadius(Constants.innerCornerRadius/2)
+        }
+    }
+    
+    private func getUnitImageName(_ item: PlayerItem) -> String {
+        let name = item.name.lowercased().replacingOccurrences(of: " ", with: "_")
+        
+        // Determine unit type
+        if item.name.contains("Super") {
+            return "super_\(name.replacingOccurrences(of: "super_", with: ""))"
+        } else if isDarkElixirTroop(item) {
+            return "dark_\(name)"
+        } else if isSiegeMachine(item) {
+            return "siege_\(name)"
+        } else if isHero(item) {
+            return "hero_\(name)"
+        } else if isHeroEquipment(item) {
+            return "equip_\(name)"
+        } else if isSpell(item) {
+            if isDarkSpell(item) {
+                return "dark_spell_\(name)"
+            }
+            return "spell_\(name)"
+        } else {
+            // Regular troop
+            return "troop_\(name)"
+        }
+    }
+    
+    // Helper functions
+    private func isDarkElixirTroop(_ item: PlayerItem) -> Bool {
+        let darkTroopNames = [
+            "minion", "hog", "valkyrie", "golem", "witch",
+            "lava", "bowler", "ice golem", "headhunter"
+        ]
+        
+        return darkTroopNames.contains { item.name.lowercased().contains($0) }
+    }
+    
+    private func isSiegeMachine(_ item: PlayerItem) -> Bool {
+        return item.name.contains("Wall Wrecker") ||
+               item.name.contains("Battle Blimp") ||
+               item.name.contains("Stone Slammer") ||
+               item.name.contains("Siege Barracks") ||
+               item.name.contains("Log Launcher") ||
+               item.name.contains("Flame Flinger") ||
+               item.name.contains("Battle Drill")
+    }
+    
+    private func isHero(_ item: PlayerItem) -> Bool {
+        return item.name.contains("King") ||
+               item.name.contains("Queen") ||
+               item.name.contains("Warden") ||
+               item.name.contains("Champion")
+    }
+    
+    private func isHeroEquipment(_ item: PlayerItem) -> Bool {
+        return item.village == "heroEquipment"
+    }
+    
+    private func isSpell(_ item: PlayerItem) -> Bool {
+        return item.village == "spells" ||
+               item.name.contains("Spell")
+    }
+    
+    private func isDarkSpell(_ item: PlayerItem) -> Bool {
+        let darkSpellNames = [
+            "poison", "earthquake", "haste", "skeleton", "bat"
+        ]
+        
+        return darkSpellNames.contains { item.name.lowercased().contains($0) }
     }
 }

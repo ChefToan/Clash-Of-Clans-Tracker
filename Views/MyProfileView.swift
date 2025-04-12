@@ -132,80 +132,93 @@ struct MyProfileView: View {
                             .padding(.vertical, 10)
                             
                             // UNIT PROGRESSION
-                            if let troops = player.troops, !troops.isEmpty {
-                                VStack(spacing: 0) {
-                                    Text("UNIT PROGRESSION")
+                            VStack(spacing: 0) {
+                                Text("UNIT PROGRESSION")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .padding(.vertical, 10)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.black.opacity(0.3))
+                                
+                                VStack(alignment: .center, spacing: 15) {
+                                    Text("TOTAL PROGRESSION")
                                         .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .padding(.vertical, 10)
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color.black.opacity(0.3))
+                                        .padding(.top, 10)
                                     
-                                    VStack(alignment: .center, spacing: 15) {
-                                        Text("TOTAL PROGRESSION")
-                                            .font(.headline)
-                                            .padding(.top, 10)
-                                        
-                                        // Total progress bar
-                                        let allItems = getAllItems(player)
-                                        let totalProgress = viewModel.calculateProgress(allItems)
-                                        ProgressBar(value: totalProgress, color: Constants.blue)
-                                            .frame(height: 30)
-                                            .padding(.horizontal)
-                                        
-                                        // Heroes category
-                                        if let heroes = player.heroes, !heroes.isEmpty {
-                                            UnitCategoryView(
-                                                title: "HEROES",
-                                                items: heroes,
-                                                progress: viewModel.calculateProgress(heroes),
-                                                color: Constants.orange
-                                            )
-                                        }
-                                        
-                                        // Troops categories
-                                        if !troops.isEmpty {
-                                            let regularTroops = troops.filter {
-                                                !viewModel.isSuperTroop($0) &&
-                                                !viewModel.isDarkElixirTroop($0) &&
-                                                !viewModel.isSiegeMachine($0)
-                                            }
-                                            
-                                            if !regularTroops.isEmpty {
-                                                UnitCategoryView(
-                                                    title: "TROOPS",
-                                                    items: regularTroops,
-                                                    progress: viewModel.calculateProgress(regularTroops),
-                                                    color: Constants.purple
-                                                )
-                                            }
-                                            
-                                            let darkTroops = troops.filter { viewModel.isDarkElixirTroop($0) }
-                                            if !darkTroops.isEmpty {
-                                                UnitCategoryView(
-                                                    title: "DARK ELIXIR TROOPS",
-                                                    items: darkTroops,
-                                                    progress: viewModel.calculateProgress(darkTroops),
-                                                    color: Color(hex: "#6c5ce7")
-                                                )
-                                            }
-                                        }
-                                        
-                                        // Spells
-                                        if let spells = player.spells, !spells.isEmpty {
-                                            UnitCategoryView(
-                                                title: "SPELLS",
-                                                items: spells,
-                                                progress: viewModel.calculateProgress(spells),
-                                                color: Color(hex: "#00cec9")
-                                            )
-                                        }
+                                    // Filter and process all units
+                                    let unitData = UnitSorter.filterAndSortItems(player)
+                                    let allItems = unitData.heroes + unitData.pets + unitData.troops + unitData.darkTroops + unitData.siegeMachines + unitData.spells
+                                    
+                                    // Total progress bar
+                                    let totalProgress = viewModel.calculateProgress(allItems)
+                                    ProgressBar(value: totalProgress, color: Constants.blue)
+                                        .frame(height: 30)
+                                        .padding(.horizontal)
+                                    
+                                    // Heroes category
+                                    if !unitData.heroes.isEmpty {
+                                        UnitCategoryView(
+                                            title: "HEROES",
+                                            items: unitData.heroes,
+                                            progress: viewModel.calculateProgress(unitData.heroes),
+                                            color: Constants.orange
+                                        )
                                     }
-                                    .padding(.vertical)
-                                    .background(Constants.bgCard)
-                                    .cornerRadius(10)
-                                    .padding(.horizontal)
+                                    
+                                    // Pets category
+                                    if !unitData.pets.isEmpty {
+                                        UnitCategoryView(
+                                            title: "PETS",
+                                            items: unitData.pets,
+                                            progress: viewModel.calculateProgress(unitData.pets),
+                                            color: Color(hex: "#FF9FF3")
+                                        )
+                                    }
+                                    
+                                    // Regular troops category
+                                    if !unitData.troops.isEmpty {
+                                        UnitCategoryView(
+                                            title: "TROOPS",
+                                            items: unitData.troops,
+                                            progress: viewModel.calculateProgress(unitData.troops),
+                                            color: Constants.purple
+                                        )
+                                    }
+                                    
+                                    // Dark elixir troops
+                                    if !unitData.darkTroops.isEmpty {
+                                        UnitCategoryView(
+                                            title: "DARK ELIXIR TROOPS",
+                                            items: unitData.darkTroops,
+                                            progress: viewModel.calculateProgress(unitData.darkTroops),
+                                            color: Color(hex: "#6c5ce7")
+                                        )
+                                    }
+                                    
+                                    // Siege machines
+                                    if !unitData.siegeMachines.isEmpty {
+                                        UnitCategoryView(
+                                            title: "SIEGE MACHINES",
+                                            items: unitData.siegeMachines,
+                                            progress: viewModel.calculateProgress(unitData.siegeMachines),
+                                            color: Color(hex: "#d35400")
+                                        )
+                                    }
+                                    
+                                    // Spells
+                                    if !unitData.spells.isEmpty {
+                                        UnitCategoryView(
+                                            title: "SPELLS",
+                                            items: unitData.spells,
+                                            progress: viewModel.calculateProgress(unitData.spells),
+                                            color: Color(hex: "#00cec9")
+                                        )
+                                    }
                                 }
+                                .padding(.vertical)
+                                .background(Constants.bgCard)
+                                .cornerRadius(10)
+                                .padding(.horizontal)
                             }
                             
                             // Bottom spacing
@@ -254,28 +267,5 @@ struct MyProfileView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-    }
-    
-    // Helper functions for calculating progress
-    private func getAllItems(_ player: Player) -> [PlayerItem] {
-        var allItems: [PlayerItem] = []
-        
-        if let troops = player.troops {
-            allItems.append(contentsOf: troops)
-        }
-        
-        if let heroes = player.heroes {
-            allItems.append(contentsOf: heroes)
-        }
-        
-        if let spells = player.spells {
-            allItems.append(contentsOf: spells)
-        }
-        
-        if let equipment = player.heroEquipment {
-            allItems.append(contentsOf: equipment)
-        }
-        
-        return allItems
     }
 }

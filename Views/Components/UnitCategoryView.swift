@@ -18,13 +18,16 @@ struct UnitCategoryView: View {
                 .frame(height: 20)
                 .padding(.horizontal)
             
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 8), spacing: 5) {
-                ForEach(items) { item in
-                    ItemView(item: item)
+            // Only show items in a grid without empty placeholders
+            if !items.isEmpty {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 8), spacing: 10) {
+                    ForEach(items) { item in
+                        ItemView(item: item)
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 10)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 5)
         }
         .padding(.vertical, 5)
         .background(Constants.bgCard)
