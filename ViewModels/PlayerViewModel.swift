@@ -66,7 +66,7 @@ class PlayerViewModel: ObservableObject, ProgressCalculator {
     }
     
     // Calculate progress percentage for unit categories
-    func calculateProgress(_ items: [PlayerItem]) -> Double {
+    nonisolated func calculateProgress(_ items: [PlayerItem]) -> Double {
         guard !items.isEmpty else { return 0.0 }
         
         let totalMaxLevel = items.reduce(0) { $0 + $1.maxLevel }

@@ -62,6 +62,39 @@ class SearchViewModel: ObservableObject {
     }
     
     @MainActor
+    func refreshPlayerData() async {
+        guard let player = player else { return }
+        
+        do {
+            // Create a new Task with explicit error handling for cancellation
+            let updatedPlayer = try await Task.detached {
+                do {
+                    return try await self.apiService.getPlayerAsync(tag: player.tag)
+                } catch is CancellationError {
+                    // Handle cancellation gracefully
+                    throw NSError(
+                        domain: "SearchViewModel",
+                        code: -999,
+                        userInfo: [NSLocalizedDescriptionKey: "Refresh operation was cancelled"]
+                    )
+                } catch {
+                    throw error
+                }
+            }.value
+            
+            self.player = updatedPlayer
+        } catch is CancellationError {
+            // Handle Task cancellation specifically
+            errorMessage = "Refresh operation was cancelled"
+            showError = true
+        } catch {
+            // Handle other errors
+            errorMessage = "Failed to refresh: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+    
+    @MainActor
     func saveProfile(_ player: Player) async {
         // Show timezone selection when adding to My Profile
         showTimezoneSelection = true
@@ -70,18 +103,24 @@ class SearchViewModel: ObservableObject {
 
     @MainActor
     func completeProfileSave(_ player: Player) async {
-        // Save the player profile
-        await DataController.shared.savePlayer(player)
+        // Save the player profile and check result
+        let saveSuccess = await DataController.shared.savePlayer(player)
         
-        // Display success message
-        showSuccess = true
-        
-        // Reset view to search state after delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            self.resetToSearchState()
+        if saveSuccess {
+            // Display success message
+            showSuccess = true
             
-            // Clear the saved player since we added it to My Profile
-            UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
+            // Reset view to search state after delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.resetToSearchState()
+                
+                // Clear the saved player since we added it to My Profile
+                UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
+            }
+        } else {
+            // Handle save failure
+            errorMessage = "Failed to save player profile"
+            showError = true
         }
     }
     

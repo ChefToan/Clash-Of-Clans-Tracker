@@ -25,6 +25,7 @@ struct RoundedCorner: Shape {
 struct SearchPlayersView: View {
     @StateObject private var viewModel = SearchViewModel()
     @StateObject private var playerViewModel = PlayerViewModel()
+    @ObservedObject var tabState: TabState
     
     var body: some View {
         ZStack {
@@ -67,6 +68,9 @@ struct SearchPlayersView: View {
                         },
                         onBackToSearch: {
                             viewModel.resetToSearchState()
+                        },
+                        onRefresh: {
+                            await viewModel.refreshPlayerData()
                         }
                     )
                     .onAppear {
@@ -208,6 +212,17 @@ struct SearchPlayersView: View {
                 message: Text(viewModel.errorMessage ?? "Unknown error"),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .onChange(of: tabState.shouldResetSearch) { _, newValue in
+            if newValue {
+                viewModel.resetToSearchState()
+            }
+        }
+        
+        .onAppear {
+            if tabState.selectedTab == .search && tabState.lastSelectedTab == .search {
+                viewModel.resetToSearchState()
+            }
         }
     }
 }

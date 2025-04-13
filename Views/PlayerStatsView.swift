@@ -6,8 +6,10 @@ struct PlayerStatsView: View {
     let isLegendLeague: Bool
     let onClaimProfile: () -> Void
     let onBackToSearch: () -> Void
+    let onRefresh: () async -> Void
     
     @StateObject private var viewModel = PlayerViewModel()
+    @State private var isRefreshing = false
     
     var body: some View {
         ScrollView {
@@ -82,6 +84,9 @@ struct PlayerStatsView: View {
                 Spacer()
                     .frame(height: 50)
             }
+        }
+        .refreshable {
+            await onRefresh()
         }
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .onAppear {

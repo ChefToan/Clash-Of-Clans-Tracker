@@ -16,7 +16,7 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
     private let apiService = APIService()
     private var cancellables = Set<AnyCancellable>()
     
-    func calculateProgress(_ items: [PlayerItem]) -> Double {
+    nonisolated func calculateProgress(_ items: [PlayerItem]) -> Double {
         guard !items.isEmpty else { return 0.0 }
         
         let totalMaxLevel = items.reduce(0) { $0 + $1.maxLevel }
@@ -119,8 +119,12 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
                 self.rankingsData = nil
             }
             
-            // Save updated profile to SwiftData
-            await DataController.shared.savePlayer(updatedPlayer)
+            // Save updated profile to SwiftData and handle the result
+            let saveResult = await DataController.shared.savePlayer(updatedPlayer)
+            if !saveResult {
+                self.errorMessage = "Failed to save profile to database"
+                self.showError = true
+            }
             
         } catch {
             self.errorMessage = "Failed to refresh profile: \(error.localizedDescription)"

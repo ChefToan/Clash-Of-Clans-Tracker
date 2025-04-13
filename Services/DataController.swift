@@ -26,7 +26,7 @@ class DataController: ObservableObject {
     }
     
     // Save player to SwiftData
-    func savePlayer(_ player: Player) async {
+    func savePlayer(_ player: Player) async -> Bool {
         do {
             let modelContext = getModelContainer().mainContext
             
@@ -118,8 +118,10 @@ class DataController: ObservableObject {
             }
             
             try modelContext.save()
+            return true
         } catch {
             print("Failed to save player: \(error)")
+            return false
         }
     }
     

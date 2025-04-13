@@ -8,6 +8,7 @@ struct TrophyProgressionView: View {
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var imageSize: CGSize = .zero
+    @State private var showFullScreenImage = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -56,6 +57,11 @@ struct TrophyProgressionView: View {
                                                     }
                                             }
                                         )
+                                        .onTapGesture {
+                                            withAnimation {
+                                                showFullScreenImage = true
+                                            }
+                                        }
                                 case .failure:
                                     VStack {
                                         Image(systemName: "chart.line.downtrend.xyaxis")
@@ -120,6 +126,11 @@ struct TrophyProgressionView: View {
         .onAppear {
             loadChart()
         }
+        .fullScreenCover(isPresented: $showFullScreenImage) {
+            if let url = chartURL {
+                ZoomedImageView(url: url, isPresented: $showFullScreenImage)
+            }
+        }
     }
     
     private func loadChart() {
@@ -136,5 +147,139 @@ struct TrophyProgressionView: View {
                 self.isLoading = false
             }
         }
+    }
+}
+
+struct ZoomedImageView: View {
+    let url: URL
+    @Binding var isPresented: Bool
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    
+    // Min scale is 1.0 to prevent zooming out smaller than original
+    private let minScale: CGFloat = 1.0
+    private let maxScale: CGFloat = 5.0
+    
+    var body: some View {
+        ZStack {
+            // Black background
+            Color.black.opacity(0.9)
+                .edgesIgnoringSafeArea(.all)
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isPresented = false
+                    }
+                }
+            
+            // Image
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(1.5)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    // Only update if we're actively changing the scale
+                                    if abs(value - lastScale) > 0.01 {
+                                        let delta = value / lastScale
+                                        lastScale = value
+                                        
+                                        // Calculate new scale with limits
+                                        let newScale = scale * delta
+                                        scale = min(max(newScale, minScale), maxScale)
+                                    }
+                                }
+                                .onEnded { _ in
+                                    lastScale = 1.0
+                                    
+                                    // Smooth animation back to min scale if needed
+                                    if scale < minScale {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            scale = minScale
+                                        }
+                                    }
+                                }
+                        )
+                        .gesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    // Use direct manipulation for smoother dragging
+                                    offset = CGSize(
+                                        width: lastOffset.width + value.translation.width,
+                                        height: lastOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        lastOffset = offset
+                                    }
+                                }
+                        )
+                case .failure:
+                    VStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.yellow)
+                        Text("Failed to load image")
+                            .foregroundColor(.white)
+                    }
+                @unknown default:
+                    Text("Unknown error")
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // Close button
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            isPresented = false
+                        }
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white)
+                            .padding()
+                    }
+                }
+                
+                Spacer()
+            }
+            
+            // Reset zoom button
+            VStack {
+                Spacer()
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        scale = 1.0
+                        offset = .zero
+                        lastOffset = .zero
+                    }
+                }) {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 30))
+                        .foregroundColor(.white)
+                        .padding()
+                }
+                .opacity(scale != 1.0 || offset != .zero ? 1.0 : 0.0)
+                .padding(.bottom, 20)
+            }
+        }
+        // Use high performance rendering for smoother zoom
+        .drawingGroup()
     }
 }
