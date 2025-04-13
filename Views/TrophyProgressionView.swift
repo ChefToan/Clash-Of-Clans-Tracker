@@ -157,10 +157,7 @@ struct ZoomedImageView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
-    
-    // Min scale is 1.0 to prevent zooming out smaller than original
-    private let minScale: CGFloat = 1.0
-    private let maxScale: CGFloat = 5.0
+    @State private var dragOffset: CGSize = .zero
     
     var body: some View {
         ZStack {
@@ -168,7 +165,7 @@ struct ZoomedImageView: View {
             Color.black.opacity(0.9)
                 .edgesIgnoringSafeArea(.all)
                 .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation {
                         isPresented = false
                     }
                 }
@@ -185,44 +182,38 @@ struct ZoomedImageView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .scaleEffect(scale)
-                        .offset(offset)
+                        .offset(CGSize(
+                            width: offset.width + dragOffset.width,
+                            height: offset.height + dragOffset.height
+                        ))
                         .gesture(
                             MagnificationGesture()
                                 .onChanged { value in
-                                    // Only update if we're actively changing the scale
-                                    if abs(value - lastScale) > 0.01 {
-                                        let delta = value / lastScale
-                                        lastScale = value
-                                        
-                                        // Calculate new scale with limits
-                                        let newScale = scale * delta
-                                        scale = min(max(newScale, minScale), maxScale)
-                                    }
+                                    let delta = value / lastScale
+                                    lastScale = value
+                                    
+                                    // Limit min/max scale
+                                    let newScale = scale * delta
+                                    scale = min(max(newScale, 1.0), 5.0)
                                 }
                                 .onEnded { _ in
                                     lastScale = 1.0
-                                    
-                                    // Smooth animation back to min scale if needed
-                                    if scale < minScale {
-                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                            scale = minScale
-                                        }
-                                    }
                                 }
                         )
-                        .gesture(
+                        .simultaneousGesture(
                             DragGesture()
                                 .onChanged { value in
-                                    // Use direct manipulation for smoother dragging
-                                    offset = CGSize(
-                                        width: lastOffset.width + value.translation.width,
-                                        height: lastOffset.height + value.translation.height
-                                    )
+                                    // Update dragOffset in real-time for smooth following
+                                    dragOffset = value.translation
                                 }
-                                .onEnded { _ in
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        lastOffset = offset
-                                    }
+                                .onEnded { value in
+                                    // Commit the drag to the permanent offset
+                                    offset = CGSize(
+                                        width: offset.width + value.translation.width,
+                                        height: offset.height + value.translation.height
+                                    )
+                                    // Reset the temporary drag offset
+                                    dragOffset = .zero
                                 }
                         )
                 case .failure:
@@ -245,7 +236,7 @@ struct ZoomedImageView: View {
                     Spacer()
                     
                     Button(action: {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        withAnimation {
                             isPresented = false
                         }
                     }) {
@@ -267,7 +258,7 @@ struct ZoomedImageView: View {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         scale = 1.0
                         offset = .zero
-                        lastOffset = .zero
+                        dragOffset = .zero
                     }
                 }) {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
@@ -279,7 +270,6 @@ struct ZoomedImageView: View {
                 .padding(.bottom, 20)
             }
         }
-        // Use high performance rendering for smoother zoom
         .drawingGroup()
     }
 }
