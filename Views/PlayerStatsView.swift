@@ -86,17 +86,30 @@ struct PlayerStatsView: View {
             }
         }
         .refreshable {
+            isRefreshing = true
             await onRefresh()
+            updateViewModelWithPlayer()
+            isRefreshing = false
         }
         .background(Color.black.edgesIgnoringSafeArea(.all))
         .onAppear {
-            viewModel.player = player
-            
-            // Check if in Legend League and load rankings data
-            if let league = player.league, league.name.contains("Legend") {
-                viewModel.isLegendLeague = true
-                viewModel.loadPlayerRankings(tag: player.tag)
-            }
+            updateViewModelWithPlayer()
+        }
+        .onChange(of: player.tag) { _, _ in
+            updateViewModelWithPlayer()
+        }
+    }
+    
+    private func updateViewModelWithPlayer() {
+        viewModel.player = player
+        
+        // Check if in Legend League and load rankings data
+        if let league = player.league, league.name.contains("Legend") {
+            viewModel.isLegendLeague = true
+            viewModel.loadPlayerRankings(tag: player.tag)
+        } else {
+            viewModel.isLegendLeague = false
+            viewModel.rankingsData = nil
         }
     }
 }

@@ -71,12 +71,30 @@ struct SearchPlayersView: View {
                         },
                         onRefresh: {
                             await viewModel.refreshPlayerData()
+                            
+                            // Update playerViewModel with the refreshed player
+                            if let refreshedPlayer = viewModel.player {
+                                playerViewModel.player = refreshedPlayer
+                                if let league = refreshedPlayer.league, league.name.contains("Legend") {
+                                    playerViewModel.isLegendLeague = true
+                                    playerViewModel.loadPlayerRankings(tag: refreshedPlayer.tag)
+                                } else {
+                                    playerViewModel.isLegendLeague = false
+                                    playerViewModel.rankingsData = nil
+                                }
+                            }
                         }
                     )
+                    .id(player.tag + String(player.trophies)) // Force view to refresh when player data changes
                     .onAppear {
                         // If player is in Legend League, load their rankings data
                         if let league = player.league, league.name.contains("Legend") {
-                            playerViewModel.loadPlayer(tag: player.tag)
+                            playerViewModel.player = player
+                            playerViewModel.isLegendLeague = true
+                            playerViewModel.loadPlayerRankings(tag: player.tag)
+                        } else {
+                            playerViewModel.player = player
+                            playerViewModel.isLegendLeague = false
                         }
                     }
                 } else {
@@ -218,7 +236,6 @@ struct SearchPlayersView: View {
                 viewModel.resetToSearchState()
             }
         }
-        
         .onAppear {
             if tabState.selectedTab == .search && tabState.lastSelectedTab == .search {
                 viewModel.resetToSearchState()

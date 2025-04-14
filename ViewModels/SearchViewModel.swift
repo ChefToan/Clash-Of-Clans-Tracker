@@ -19,7 +19,7 @@ class SearchViewModel: ObservableObject {
     
     init() {
         // Try to load last searched player on initialization
-        loadLastSearchedPlayer()
+//        loadLastSearchedPlayer()
     }
     
     func searchPlayer() {
@@ -65,6 +65,8 @@ class SearchViewModel: ObservableObject {
     func refreshPlayerData() async {
         guard let player = player else { return }
         
+//        isLoading = true
+        
         do {
             // Create a new Task with explicit error handling for cancellation
             let updatedPlayer = try await Task.detached {
@@ -82,7 +84,12 @@ class SearchViewModel: ObservableObject {
                 }
             }.value
             
+            // Update the player property with the new data
             self.player = updatedPlayer
+            
+            // Save the updated player to UserDefaults to maintain state
+            saveLastSearchedPlayer(updatedPlayer)
+            
         } catch is CancellationError {
             // Handle Task cancellation specifically
             errorMessage = "Refresh operation was cancelled"
@@ -92,6 +99,8 @@ class SearchViewModel: ObservableObject {
             errorMessage = "Failed to refresh: \(error.localizedDescription)"
             showError = true
         }
+        
+//        isLoading = false
     }
     
     @MainActor
