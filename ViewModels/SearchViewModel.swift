@@ -19,7 +19,7 @@ class SearchViewModel: ObservableObject {
     
     init() {
         // Try to load last searched player on initialization
-//        loadLastSearchedPlayer()
+        loadLastSearchedPlayer()
     }
     
     func searchPlayer() {
@@ -65,7 +65,7 @@ class SearchViewModel: ObservableObject {
     func refreshPlayerData() async {
         guard let player = player else { return }
         
-//        isLoading = true
+        isLoading = true
         
         do {
             // Create a new Task with explicit error handling for cancellation
@@ -100,7 +100,7 @@ class SearchViewModel: ObservableObject {
             showError = true
         }
         
-//        isLoading = false
+        isLoading = false
     }
     
     @MainActor
@@ -111,7 +111,7 @@ class SearchViewModel: ObservableObject {
     }
 
     @MainActor
-    func completeProfileSave(_ player: Player) async {
+    func completeProfileSave(_ player: Player) async -> Bool {
         // Save the player profile and check result
         let saveSuccess = await DataController.shared.savePlayer(player)
         
@@ -126,10 +126,13 @@ class SearchViewModel: ObservableObject {
                 // Clear the saved player since we added it to My Profile
                 UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
             }
+            
+            return true
         } else {
             // Handle save failure
             errorMessage = "Failed to save player profile"
             showError = true
+            return false
         }
     }
     

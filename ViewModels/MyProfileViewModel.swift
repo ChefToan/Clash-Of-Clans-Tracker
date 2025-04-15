@@ -51,6 +51,7 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
     
     func loadProfile() async {
         isLoading = true
+        self.player = nil  // Reset player immediately to avoid stale data
         
         // Load profile from SwiftData
         let savedPlayer = await DataController.shared.getMyProfile()
@@ -61,6 +62,9 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
             if let league = player.league, league.name.contains("Legend") {
                 isLegendLeague = true
                 loadRankingsData(tag: player.tag)
+            } else {
+                isLegendLeague = false
+                rankingsData = nil
             }
             
             // If the saved player has no troop data, try to refresh from API
@@ -71,6 +75,10 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
                 isLoading = false
             }
         } else {
+            // No profile found
+            self.player = nil
+            isLegendLeague = false
+            rankingsData = nil
             isLoading = false
         }
     }
@@ -132,5 +140,10 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
         }
         
         isLoading = false
+    }
+    
+    // Explicitly check if a profile exists in the database
+    func checkIfProfileExists() async -> Bool {
+        return await DataController.shared.hasMyProfile()
     }
 }

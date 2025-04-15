@@ -26,6 +26,7 @@ struct SearchPlayersView: View {
     @StateObject private var viewModel = SearchViewModel()
     @StateObject private var playerViewModel = PlayerViewModel()
     @ObservedObject var tabState: TabState
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -46,7 +47,15 @@ struct SearchPlayersView: View {
                         onContinue: {
                             // Save to My Profile after timezone is selected
                             Task {
-                                await viewModel.completeProfileSave(player)
+                                if await viewModel.completeProfileSave(player) {
+                                    // Notify AppState that profile has been updated
+                                    appState.notifyProfileUpdated()
+                                    
+                                    // Switch to the My Profile tab after a short delay
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        appState.navigateToTab(.profile)
+                                    }
+                                }
                             }
                         },
                         onCancel: {

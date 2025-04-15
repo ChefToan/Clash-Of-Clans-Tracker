@@ -4,6 +4,7 @@ import Combine
 
 class ImageLoader: ObservableObject {
     @Published var image: UIImage?
+    @Published var isLoading = false
     private var cancellable: AnyCancellable?
     private let apiService = APIService()
     
@@ -19,15 +20,20 @@ class ImageLoader: ObservableObject {
             return
         }
         
+        // Set loading state to true
+        isLoading = true
+        
         // Load the image
         cancellable = apiService.loadImage(from: urlString)
             .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { completion in
+            .sink(receiveCompletion: { [weak self] completion in
                 if case .failure(let error) = completion {
                     print("Failed to load image: \(error.localizedDescription)")
                 }
+                self?.isLoading = false
             }, receiveValue: { [weak self] image in
                 self?.image = image
+                self?.isLoading = false
             })
     }
     
@@ -57,6 +63,12 @@ struct RemoteImageView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: width, height: height)
+            } else if imageLoader.isLoading {
+                // Loading indicator while fetching image
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(0.9)
+                    .frame(width: width, height: height)
             } else {
                 // Image placeholder from assets
                 if let placeholderImage = UIImage(named: placeholder) {
@@ -68,10 +80,10 @@ struct RemoteImageView: View {
                     // Fallback placeholder if image not found
                     ZStack {
                         Rectangle()
-                            .fill(Color.purple.opacity(0.5))
+                            .fill(Color.gray.opacity(0.3))
                             .frame(width: width, height: height)
                             .cornerRadius(10)
-                            
+                        
                         Text(placeholder)
                             .font(.caption)
                             .foregroundColor(.white)

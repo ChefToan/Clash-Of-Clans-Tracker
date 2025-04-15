@@ -58,7 +58,7 @@ struct LeagueInfoView: View {
                         .padding(.bottom, 8) // Reduced padding
                     
                     HStack(spacing: 40) {
-                                                    // Global Rank
+                        // Global Rank
                         VStack(spacing: 8) {
                             Text("Global:")
                                 .font(.headline)

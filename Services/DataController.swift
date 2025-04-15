@@ -32,7 +32,7 @@ class DataController: ObservableObject {
             
             // Use native SwiftData predicate
             let descriptor = FetchDescriptor<PlayerModel>(
-                predicate: #Predicate { model in
+                predicate: #Predicate<PlayerModel> { model in
                     model.tag == player.tag
                 }
             )
@@ -106,7 +106,7 @@ class DataController: ObservableObject {
             
             // Clear isMyProfile for all other players
             let allPlayersDescriptor = FetchDescriptor<PlayerModel>(
-                predicate: #Predicate { model in
+                predicate: #Predicate<PlayerModel> { model in
                     model.tag != player.tag
                 }
             )
@@ -118,9 +118,37 @@ class DataController: ObservableObject {
             }
             
             try modelContext.save()
+            
+            // Update UserDefaults to indicate a profile has been claimed
+            UserDefaults.standard.set(true, forKey: "hasClaimedProfile")
+            
             return true
         } catch {
             print("Failed to save player: \(error)")
+            return false
+        }
+    }
+    
+    // Check if a MyProfile record exists in the database
+    func hasMyProfile() async -> Bool {
+        do {
+            let modelContext = getModelContainer().mainContext
+            
+            // Use native SwiftData predicate to find any profile marked as "my profile"
+            let descriptor = FetchDescriptor<PlayerModel>(
+                predicate: #Predicate<PlayerModel> { model in
+                    model.isMyProfile == true
+                }
+            )
+            
+            // Set fetch limit in a separate step to fix the argument error
+            var limitedDescriptor = descriptor
+            limitedDescriptor.fetchLimit = 1
+            
+            let results = try modelContext.fetch(limitedDescriptor)
+            return !results.isEmpty
+        } catch {
+            print("Failed to check for my profile: \(error)")
             return false
         }
     }
@@ -132,7 +160,7 @@ class DataController: ObservableObject {
             
             // Use native SwiftData predicate
             let descriptor = FetchDescriptor<PlayerModel>(
-                predicate: #Predicate { model in
+                predicate: #Predicate<PlayerModel> { model in
                     model.isMyProfile == true
                 }
             )
@@ -190,5 +218,74 @@ class DataController: ObservableObject {
             bestBuilderBaseTrophies: model.bestBuilderBaseTrophies,
             legends: nil
         )
+    }
+    
+    // Remove my profile
+    func removeMyProfile() async -> Bool {
+        do {
+            let modelContext = getModelContainer().mainContext
+            
+            // Find any profile marked as my profile
+            let descriptor = FetchDescriptor<PlayerModel>(
+                predicate: #Predicate<PlayerModel> { model in
+                    model.isMyProfile == true
+                }
+            )
+            
+            let results = try modelContext.fetch(descriptor)
+            print("Found \(results.count) profiles marked as 'my profile'")
+            
+            // Delete any found profiles
+            for profile in results {
+                print("Deleting profile: \(profile.name) (\(profile.tag))")
+                modelContext.delete(profile)
+            }
+            
+            // Save changes to the database
+            try modelContext.save()
+            
+            // Verify the deletion
+            let verifyDescriptor = FetchDescriptor<PlayerModel>(
+                predicate: #Predicate<PlayerModel> { model in
+                    model.isMyProfile == true
+                }
+            )
+            
+            let verifyResults = try modelContext.fetch(verifyDescriptor)
+            print("After deletion: \(verifyResults.count) profiles marked as 'my profile'")
+            
+            // Update UserDefaults
+            UserDefaults.standard.set(false, forKey: "hasClaimedProfile")
+            
+            return true
+        } catch {
+            print("Failed to remove my profile: \(error)")
+            return false
+        }
+    }
+    
+    // Clear all data in SwiftData store
+    func clearAllData() async {
+        do {
+            let modelContext = getModelContainer().mainContext
+            
+            // Fetch all player models
+            let descriptor = FetchDescriptor<PlayerModel>()
+            let allPlayers = try modelContext.fetch(descriptor)
+            
+            // Delete all players
+            for player in allPlayers {
+                modelContext.delete(player)
+            }
+            
+            try modelContext.save()
+            
+            // Reset UserDefaults key for profile
+            UserDefaults.standard.set(false, forKey: "hasClaimedProfile")
+            
+            print("Successfully cleared all data from SwiftData store")
+        } catch {
+            print("Failed to clear data: \(error)")
+        }
     }
 }

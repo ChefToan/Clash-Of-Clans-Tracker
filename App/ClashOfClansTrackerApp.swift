@@ -26,12 +26,24 @@ class TabState: ObservableObject {
         lastSelectedTab = selectedTab
         selectedTab = tab
     }
+    
+    // Initialize with the appropriate tab based on whether user has a profile
+    func initializeWithDefaultTab(hasProfile: Bool) {
+        selectedTab = hasProfile ? .profile : .search
+    }
+    
+    // Update tab selection from AppState
+    func updateFromAppState() {
+        selectedTab = AppState.shared.selectedTab
+    }
 }
 
 @main
 struct ClashOfClansTrackerApp: App {
     @StateObject private var dataController = DataController.shared
     @StateObject private var tabState = TabState()
+    @StateObject private var appState = AppState.shared
+    @State private var initialTabSet = false
     
     var body: some Scene {
         WindowGroup {
@@ -42,6 +54,7 @@ struct ClashOfClansTrackerApp: App {
                 NavigationStack {
                     SearchPlayersView(tabState: tabState)
                         .navigationBarHidden(true)
+                        .environmentObject(appState)
                 }
                 .tabItem {
                     Image(systemName: "magnifyingglass")
@@ -52,6 +65,7 @@ struct ClashOfClansTrackerApp: App {
                 NavigationStack {
                     MyProfileView()
                         .navigationBarHidden(true)
+                        .environmentObject(appState)
                 }
                 .tabItem {
                     Image(systemName: "person")
@@ -62,6 +76,7 @@ struct ClashOfClansTrackerApp: App {
                 NavigationStack {
                     SettingsView()
                         .navigationTitle("Settings")
+                        .environmentObject(appState)
                 }
                 .tabItem {
                     Image(systemName: "gear")
@@ -77,6 +92,16 @@ struct ClashOfClansTrackerApp: App {
             // Load the shared UserDefaults for state persistence
             .onAppear {
                 setupAppDefaults()
+                setupInitialTab()
+            }
+            .task {
+                if !initialTabSet {
+                    await setupInitialTabAsync()
+                    initialTabSet = true
+                }
+            }
+            .onChange(of: appState.selectedTab) { _, newTab in
+                tabState.selectedTab = newTab
             }
         }
     }
@@ -86,5 +111,25 @@ struct ClashOfClansTrackerApp: App {
         if UserDefaults.standard.string(forKey: "selectedTimezone") == nil {
             UserDefaults.standard.set(TimeZone.current.identifier, forKey: "selectedTimezone")
         }
+    }
+    
+    private func setupInitialTab() {
+        // Check UserDefaults first for a quick startup
+        if UserDefaults.standard.bool(forKey: "hasClaimedProfile") {
+            tabState.initializeWithDefaultTab(hasProfile: true)
+            initialTabSet = true
+        }
+    }
+    
+    @MainActor
+    private func setupInitialTabAsync() async {
+        // Check if a profile exists in SwiftData
+        let hasProfile = await dataController.hasMyProfile()
+        
+        // Update UserDefaults for faster future loads
+        UserDefaults.standard.set(hasProfile, forKey: "hasClaimedProfile")
+        
+        // Set the initial tab
+        tabState.initializeWithDefaultTab(hasProfile: hasProfile)
     }
 }

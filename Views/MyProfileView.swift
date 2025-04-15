@@ -5,6 +5,8 @@ import SwiftData
 struct MyProfileView: View {
     @StateObject private var viewModel = MyProfileViewModel()
     @State private var isFirstLoad = true
+    @State private var isRefreshing = false
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -18,28 +20,7 @@ struct MyProfileView: View {
                     .frame(maxWidth: .infinity)
                     .background(Constants.blue)
                 
-                // Refresh button below header
-                if !viewModel.isLoading, viewModel.player != nil {
-                    Button {
-                        Task {
-                            await viewModel.refreshProfile()
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                            Text("Refresh Profile")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Constants.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                }
-                
-                if viewModel.isLoading {
+                if viewModel.isLoading && !isRefreshing {
                     Spacer()
                     ProgressView()
                         .scaleEffect(1.5)
@@ -82,6 +63,11 @@ struct MyProfileView: View {
                                 .frame(height: 20)
                         }
                     }
+                    .refreshable {
+                        isRefreshing = true
+                        await viewModel.refreshProfile()
+                        isRefreshing = false
+                    }
                 } else {
                     // No profile claimed view
                     VStack(spacing: 20) {
@@ -101,6 +87,22 @@ struct MyProfileView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         
+                        Button {
+                            // Navigate to search tab
+                            appState.selectedTab = .search
+                        } label: {
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                Text("Search Players")
+                            }
+                            .padding(.horizontal, 30)
+                            .padding(.vertical, 12)
+                            .background(Constants.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .padding(.top, 12)
+                        
                         Spacer()
                     }
                     .padding()
@@ -108,14 +110,41 @@ struct MyProfileView: View {
             }
         }
         .onAppear {
-            // Only load profile once to avoid infinite loop
-            if isFirstLoad {
+            // Always refresh when the view appears to catch any changes
+            Task {
+                // Directly check if profile exists in the database
+                let profileExists = await viewModel.checkIfProfileExists()
+                print("MyProfileView onAppear - Profile exists: \(profileExists)")
+                
+                if profileExists {
+                    await viewModel.loadProfile()
+                } else {
+                    // If no profile exists, make sure player is nil
+                    viewModel.player = nil
+                    viewModel.isLoading = false
+                }
+                
+                isFirstLoad = false
+            }
+        }
+        .onChange(of: appState.profileUpdated) { _, updated in
+            if updated {
+                print("MyProfileView detected profile update notification")
+                // Profile was just updated, reload from database
                 Task {
                     await viewModel.loadProfile()
-                    isFirstLoad = false
                 }
             }
         }
+        .onChange(of: appState.profileRemoved) { _, removed in
+            if removed {
+                print("MyProfileView detected profile removal notification")
+                // Profile was just removed, immediately clear the player
+                viewModel.player = nil
+                viewModel.isLoading = false
+            }
+        }
+        
         .alert(isPresented: $viewModel.showError) {
             Alert(
                 title: Text("Error"),

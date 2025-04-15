@@ -65,7 +65,7 @@ struct TrophyProgressionView: View {
                                     .padding(.top, 10)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 200)
+                                .frame(height: 180)
                             @unknown default:
                                 Text("Unknown error")
                                     .foregroundColor(.gray)

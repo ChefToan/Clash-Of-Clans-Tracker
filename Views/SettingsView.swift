@@ -1,14 +1,14 @@
 // SettingsView.swift
 import SwiftUI
-import CoreData
+import SwiftData
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
-    @Environment(\.managedObjectContext) var moc
     @State private var showClearConfirmation = false
     @State private var showResetConfirmation = false
-    @State private var showClearSuccess = false
-    @State private var showResetSuccess = false
+    @State private var showRemoveProfileConfirmation = false
+    @State private var showClearDataConfirmation = false
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         List {
@@ -34,6 +34,63 @@ struct SettingsView: View {
                 .padding(.vertical, 5)
             }
             
+            // Profile & Data Management section
+            Section(header: Label("Profile Management", systemImage: "person")) {
+                Button(action: {
+                    showRemoveProfileConfirmation = true
+                }) {
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.minus")
+                            .foregroundColor(.red)
+                        Text("Remove My Profile")
+                            .foregroundColor(.red)
+                    }
+                }
+                .alert(isPresented: $showRemoveProfileConfirmation) {
+                    Alert(
+                        title: Text("Remove My Profile"),
+                        message: Text("Are you sure you want to remove your profile? This action cannot be undone."),
+                        primaryButton: .destructive(Text("Remove")) {
+                            Task {
+                                if await viewModel.removeMyProfile() {
+                                    // Notify AppState that profile has been removed
+                                    appState.notifyProfileRemoved()
+                                    viewModel.showSuccess(message: "Profile removed successfully")
+                                }
+                            }
+                        },
+                        secondaryButton: .cancel()
+                    )
+                }
+                
+                // Clear All Data option
+                Button(action: {
+                    showClearDataConfirmation = true
+                }) {
+                    HStack {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
+                        Text("Clear All App Data")
+                            .foregroundColor(.red)
+                    }
+                }
+                .alert(isPresented: $showClearDataConfirmation) {
+                    Alert(
+                        title: Text("Clear All App Data"),
+                        message: Text("This will remove ALL saved data including profiles, search history, and settings. This action cannot be undone."),
+                        primaryButton: .destructive(Text("Clear Everything")) {
+                            Task {
+                                await viewModel.clearAllData()
+                                // Notify AppState that profile has been removed
+                                appState.notifyProfileRemoved()
+                                viewModel.showSuccess(message: "All data cleared successfully")
+                            }
+                        },
+                        secondaryButton: .cancel()
+                    )
+                }
+            }
+            
             // About section
             Section(header: Label("About", systemImage: "info.circle")) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -50,29 +107,17 @@ struct SettingsView: View {
         .listStyle(InsetGroupedListStyle())
         .overlay(
             Group {
-                if showClearSuccess {
-                    SuccessToast(message: "All players cleared successfully")
-                }
-                if showResetSuccess {
-                    SuccessToast(message: "Settings reset successfully")
+                if viewModel.showSuccessToast {
+                    SuccessToast(message: viewModel.successMessage)
+                        .onAppear {
+                            // Auto-hide the toast after a few seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                                viewModel.hideSuccessToast()
+                            }
+                        }
                 }
             }
         )
-    }
-    
-    private func clearCoreDataPlayers() {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "PlayerEntity")
-        let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        
-        do {
-            try moc.execute(batchDeleteRequest)
-            try moc.save()
-            
-            // Also clear any cached player data in UserDefaults
-            UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
-        } catch {
-            print("Failed to clear players: \(error)")
-        }
     }
 }
 
