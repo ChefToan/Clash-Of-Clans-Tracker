@@ -62,7 +62,7 @@ class SettingsViewModel: ObservableObject {
         } else {
             print("SettingsViewModel - Failed to remove profile")
         }
-        
+        TabState.shared.handleTabSelection(.profile)
         return result
     }
     
@@ -83,6 +83,23 @@ class SettingsViewModel: ObservableObject {
         try? await Task.sleep(nanoseconds: 100_000_000)
         
         print("SettingsViewModel - All data cleared successfully")
+    }
+    
+    func clearAllSettings() {
+        // Reset to defaults
+        selectedTimezone = TimeZone.current.identifier
+        autoRefresh = false
+        
+        // Save to UserDefaults
+        UserDefaults.standard.set(selectedTimezone, forKey: "selectedTimezone")
+        UserDefaults.standard.set(autoRefresh, forKey: "autoRefresh")
+        
+        // Also clear any user-specific data
+        UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
+        UserDefaults.standard.removeObject(forKey: "lastSearchTimestamp")
+        
+        // Redirect to My Profile tab
+        TabState.shared.handleTabSelection(.profile)
     }
     
     private func clearUserDefaults() {

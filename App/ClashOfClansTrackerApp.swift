@@ -9,6 +9,8 @@ enum TabSection: Int {
 }
 
 class TabState: ObservableObject {
+    static let shared = TabState()
+        
     @Published var selectedTab: TabSection = .search
     @Published var shouldResetSearch = false
     @Published var lastSelectedTab: TabSection? = nil
@@ -26,7 +28,7 @@ class TabState: ObservableObject {
         lastSelectedTab = selectedTab
         selectedTab = tab
     }
-    
+
     // Initialize with the appropriate tab based on whether user has a profile
     func initializeWithDefaultTab(hasProfile: Bool) {
         selectedTab = hasProfile ? .profile : .search
@@ -41,7 +43,7 @@ class TabState: ObservableObject {
 @main
 struct ClashOfClansTrackerApp: App {
     @StateObject private var dataController = DataController.shared
-    @StateObject private var tabState = TabState()
+    @StateObject private var tabState = TabState.shared
     @StateObject private var appState = AppState.shared
     @State private var initialTabSet = false
     
@@ -63,7 +65,7 @@ struct ClashOfClansTrackerApp: App {
                 .tag(TabSection.search)
                 
                 NavigationStack {
-                    MyProfileView()
+                    MyProfileView(tabState: tabState)
                         .navigationBarHidden(true)
                         .environmentObject(appState)
                 }

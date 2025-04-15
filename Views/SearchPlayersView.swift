@@ -22,11 +22,11 @@ struct RoundedCorner: Shape {
     }
 }
 
+// SearchPlayersView.swift
 struct SearchPlayersView: View {
     @StateObject private var viewModel = SearchViewModel()
     @StateObject private var playerViewModel = PlayerViewModel()
     @ObservedObject var tabState: TabState
-    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -47,15 +47,7 @@ struct SearchPlayersView: View {
                         onContinue: {
                             // Save to My Profile after timezone is selected
                             Task {
-                                if await viewModel.completeProfileSave(player) {
-                                    // Notify AppState that profile has been updated
-                                    appState.notifyProfileUpdated()
-                                    
-                                    // Switch to the My Profile tab after a short delay
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        appState.navigateToTab(.profile)
-                                    }
-                                }
+                                await viewModel.completeProfileSave(player)
                             }
                         },
                         onCancel: {
@@ -242,11 +234,6 @@ struct SearchPlayersView: View {
         }
         .onChange(of: tabState.shouldResetSearch) { _, newValue in
             if newValue {
-                viewModel.resetToSearchState()
-            }
-        }
-        .onAppear {
-            if tabState.selectedTab == .search && tabState.lastSelectedTab == .search {
                 viewModel.resetToSearchState()
             }
         }

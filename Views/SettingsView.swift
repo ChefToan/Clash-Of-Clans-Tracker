@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showRemoveProfileConfirmation = false
     @State private var showClearDataConfirmation = false
     @EnvironmentObject var appState: AppState
+    @ObservedObject var tabState = TabState.shared // Add tab state reference
     
     var body: some View {
         List {
@@ -56,6 +57,11 @@ struct SettingsView: View {
                                     // Notify AppState that profile has been removed
                                     appState.notifyProfileRemoved()
                                     viewModel.showSuccess(message: "Profile removed successfully")
+                                    
+                                    // Redirect to Profile tab after delay
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        tabState.selectedTab = .profile
+                                    }
                                 }
                             }
                         },
@@ -84,6 +90,11 @@ struct SettingsView: View {
                                 // Notify AppState that profile has been removed
                                 appState.notifyProfileRemoved()
                                 viewModel.showSuccess(message: "All data cleared successfully")
+                                
+                                // Redirect to Profile tab after delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    tabState.selectedTab = .profile
+                                }
                             }
                         },
                         secondaryButton: .cancel()

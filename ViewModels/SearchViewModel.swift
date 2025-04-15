@@ -111,28 +111,24 @@ class SearchViewModel: ObservableObject {
     }
 
     @MainActor
-    func completeProfileSave(_ player: Player) async -> Bool {
-        // Save the player profile and check result
+    func completeProfileSave(_ player: Player) async {
         let saveSuccess = await DataController.shared.savePlayer(player)
         
         if saveSuccess {
-            // Display success message
             showSuccess = true
             
-            // Reset view to search state after delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // Switch to Profile tab immediately after success message
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Clear search state
                 self.resetToSearchState()
-                
-                // Clear the saved player since we added it to My Profile
                 UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
+                
+                // Force switch to profile tab
+                TabState.shared.selectedTab = .profile
             }
-            
-            return true
         } else {
-            // Handle save failure
             errorMessage = "Failed to save player profile"
             showError = true
-            return false
         }
     }
     

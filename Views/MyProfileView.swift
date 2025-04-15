@@ -5,8 +5,7 @@ import SwiftData
 struct MyProfileView: View {
     @StateObject private var viewModel = MyProfileViewModel()
     @State private var isFirstLoad = true
-    @State private var isRefreshing = false
-    @EnvironmentObject var appState: AppState
+    @ObservedObject var tabState: TabState
     
     var body: some View {
         ZStack {
@@ -20,7 +19,7 @@ struct MyProfileView: View {
                     .frame(maxWidth: .infinity)
                     .background(Constants.blue)
                 
-                if viewModel.isLoading && !isRefreshing {
+                if viewModel.isLoading {
                     Spacer()
                     ProgressView()
                         .scaleEffect(1.5)
@@ -30,43 +29,35 @@ struct MyProfileView: View {
                     // Player profile content
                     ScrollView {
                         VStack(spacing: 16) {
-                            // Player Profile section
                             PlayerProfileView(player: player)
                                 .padding(.horizontal)
                             
-                            // League Info section
                             LeagueInfoView(
                                 player: player,
                                 rankingsData: viewModel.rankingsData
                             )
                             .padding(.horizontal)
                             
-                            // Trophy progression section for Legend League
                             if viewModel.isLegendLeague {
                                 TrophyProgressionView(player: player)
                                     .padding(.horizontal)
                             }
                             
-                            // Player stats section
                             PlayerStatsSection(player: player)
                                 .padding(.horizontal)
                             
-                            // Unit progression section
                             UnitProgressionSection(
                                 player: player,
                                 calculator: viewModel
                             )
                             .padding(.horizontal)
                             
-                            // Bottom spacing
                             Spacer()
                                 .frame(height: 20)
                         }
                     }
                     .refreshable {
-                        isRefreshing = true
                         await viewModel.refreshProfile()
-                        isRefreshing = false
                     }
                 } else {
                     // No profile claimed view
@@ -88,20 +79,19 @@ struct MyProfileView: View {
                             .padding(.horizontal)
                         
                         Button {
-                            // Navigate to search tab
-                            appState.selectedTab = .search
+                            tabState.handleTabSelection(.search)
                         } label: {
                             HStack {
                                 Image(systemName: "magnifyingglass")
-                                Text("Search Players")
+                                Text("Search Now")
                             }
-                            .padding(.horizontal, 30)
+                            .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(Constants.blue)
                             .foregroundColor(.white)
                             .cornerRadius(8)
+                            .padding(.horizontal, 40)
                         }
-                        .padding(.top, 12)
                         
                         Spacer()
                     }
@@ -110,41 +100,20 @@ struct MyProfileView: View {
             }
         }
         .onAppear {
-            // Always refresh when the view appears to catch any changes
-            Task {
-                // Directly check if profile exists in the database
-                let profileExists = await viewModel.checkIfProfileExists()
-                print("MyProfileView onAppear - Profile exists: \(profileExists)")
-                
-                if profileExists {
+            if isFirstLoad {
+                Task {
                     await viewModel.loadProfile()
-                } else {
-                    // If no profile exists, make sure player is nil
-                    viewModel.player = nil
-                    viewModel.isLoading = false
+                    isFirstLoad = false
                 }
-                
-                isFirstLoad = false
             }
         }
-        .onChange(of: appState.profileUpdated) { _, updated in
-            if updated {
-                print("MyProfileView detected profile update notification")
-                // Profile was just updated, reload from database
+        .onChange(of: tabState.selectedTab) { _, newValue in
+            if newValue == .profile {
                 Task {
                     await viewModel.loadProfile()
                 }
             }
         }
-        .onChange(of: appState.profileRemoved) { _, removed in
-            if removed {
-                print("MyProfileView detected profile removal notification")
-                // Profile was just removed, immediately clear the player
-                viewModel.player = nil
-                viewModel.isLoading = false
-            }
-        }
-        
         .alert(isPresented: $viewModel.showError) {
             Alert(
                 title: Text("Error"),
