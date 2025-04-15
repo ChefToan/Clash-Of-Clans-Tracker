@@ -20,10 +20,26 @@ class SettingsViewModel: ObservableObject {
         selectedTimezone = timezone
         UserDefaults.standard.set(timezone, forKey: "selectedTimezone")
     }
-    
+
     func setAutoRefresh(enabled: Bool) {
         autoRefresh = enabled
         UserDefaults.standard.set(autoRefresh, forKey: "autoRefresh")
+        
+        // Notify any listeners that the setting has changed
+        NotificationCenter.default.post(name: Notification.Name("AutoRefreshSettingChanged"), object: nil)
+        
+        // If enabling, show a success message
+        if enabled {
+            showSuccess(message: "Auto-refresh enabled")
+        }
+    }
+
+    func getNextRefreshTime() -> String {
+        return RefreshScheduler.shared.formatNextResetTime()
+    }
+
+    func get5AMUTCInUserTimezone() -> String {
+        return RefreshScheduler.shared.get5AMUTCInUserTimezone()
     }
     
     func resetAllSettings() {

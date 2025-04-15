@@ -25,6 +25,39 @@ class DataController: ObservableObject {
         }
     }
     
+    @MainActor
+    func refreshMyProfileData() async -> Bool {
+        do {
+            let modelContext = getModelContainer().mainContext
+            
+            // Find the "my profile" record
+            let descriptor = FetchDescriptor<PlayerModel>(
+                predicate: #Predicate<PlayerModel> { model in
+                    model.isMyProfile == true
+                }
+            )
+            
+            let results = try modelContext.fetch(descriptor)
+            
+            if let playerModel = results.first {
+                // Get the player's tag
+                let tag = playerModel.tag
+                
+                // Use the API service to get updated player data
+                let apiService = APIService()
+                let updatedPlayer = try await apiService.getPlayerAsync(tag: tag)
+                
+                // Save the updated player to SwiftData
+                return await savePlayer(updatedPlayer)
+            }
+            
+            return false
+        } catch {
+            print("Failed to refresh profile data: \(error)")
+            return false
+        }
+    }
+    
     // Save player to SwiftData
     func savePlayer(_ player: Player) async -> Bool {
         do {

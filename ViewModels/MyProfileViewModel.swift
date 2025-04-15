@@ -13,8 +13,13 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
     @Published var isLegendLeague = false
     @Published var rankingsData: PlayerRankings?
     
+    // Keep these properties but they're not displayed in the UI
+    private var nextRefreshTime: String = ""
+    private var isAutoRefreshEnabled: Bool = false
+    
     private let apiService = APIService()
     private var cancellables = Set<AnyCancellable>()
+    private let refreshScheduler = RefreshScheduler.shared
     
     nonisolated func calculateProgress(_ items: [PlayerItem]) -> Double {
         guard !items.isEmpty else { return 0.0 }
@@ -24,6 +29,52 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
         
         guard totalMaxLevel > 0 else { return 0.0 }
         return Double(totalCurrentLevel) / Double(totalMaxLevel) * 100.0
+    }
+    
+    func setupAutoRefresh() {
+        // Get auto-refresh setting
+        isAutoRefreshEnabled = UserDefaults.standard.bool(forKey: "autoRefresh")
+        
+        // Update next refresh time
+        updateNextRefreshTimeDisplay()
+        
+        // Schedule refresh if enabled
+        if isAutoRefreshEnabled {
+            scheduleAutoRefresh()
+        }
+        
+        // Listen for setting changes
+        NotificationCenter.default.addObserver(
+            forName: Notification.Name("AutoRefreshSettingChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.isAutoRefreshEnabled = UserDefaults.standard.bool(forKey: "autoRefresh")
+            if self?.isAutoRefreshEnabled == true {
+                self?.scheduleAutoRefresh()
+            }
+        }
+    }
+    
+    private func updateNextRefreshTimeDisplay() {
+        nextRefreshTime = refreshScheduler.formatNextResetTime()
+    }
+    
+    private func scheduleAutoRefresh() {
+        refreshScheduler.scheduleNextRefresh { [weak self] in
+            Task {
+                await self?.performAutoRefresh()
+            }
+        }
+    }
+    
+    private func performAutoRefresh() async {
+        if refreshScheduler.shouldRefresh() {
+            await refreshProfile()
+            refreshScheduler.updateLastRefreshTime()
+        }
+        
+        updateNextRefreshTimeDisplay()
     }
     
     func isSuperTroop(_ item: PlayerItem) -> Bool {
@@ -53,34 +104,56 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
         isLoading = true
         self.player = nil  // Reset player immediately to avoid stale data
         
-        // Load profile from SwiftData
-        let savedPlayer = await DataController.shared.getMyProfile()
-        if let player = savedPlayer {
-            self.player = player
-            
-            // Check if in Legend League
-            if let league = player.league, league.name.contains("Legend") {
-                isLegendLeague = true
-                loadRankingsData(tag: player.tag)
+        // Check if auto-refresh should happen
+        if refreshScheduler.shouldRefresh() {
+            print("Auto refresh triggered on profile load")
+            // Loading profile with refresh
+            let savedPlayer = await DataController.shared.getMyProfile()
+            if let player = savedPlayer {
+                // Load profile and then refresh
+                self.player = player
+                await refreshProfile()
+                refreshScheduler.updateLastRefreshTime()
             } else {
+                // No profile to refresh
+                self.player = nil
                 isLegendLeague = false
                 rankingsData = nil
-            }
-            
-            // If the saved player has no troop data, try to refresh from API
-            if player.troops == nil || player.troops?.isEmpty == true {
-                print("No troop data found, refreshing from API")
-                await refreshProfile()
-            } else {
                 isLoading = false
             }
         } else {
-            // No profile found
-            self.player = nil
-            isLegendLeague = false
-            rankingsData = nil
-            isLoading = false
+            // Regular profile load without refresh
+            let savedPlayer = await DataController.shared.getMyProfile()
+            if let player = savedPlayer {
+                self.player = player
+                
+                // Check if in Legend League
+                if let league = player.league, league.name.contains("Legend") {
+                    isLegendLeague = true
+                    loadRankingsData(tag: player.tag)
+                } else {
+                    isLegendLeague = false
+                    rankingsData = nil
+                }
+                
+                // If the saved player has no troop data, try to refresh from API
+                if player.troops == nil || player.troops?.isEmpty == true {
+                    print("No troop data found, refreshing from API")
+                    await refreshProfile()
+                } else {
+                    isLoading = false
+                }
+            } else {
+                // No profile found
+                self.player = nil
+                isLegendLeague = false
+                rankingsData = nil
+                isLoading = false
+            }
         }
+        
+        // Still update the refresh time internally
+        updateNextRefreshTimeDisplay()
     }
     
     func loadRankingsData(tag: String) {
@@ -140,6 +213,7 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
         }
         
         isLoading = false
+        updateNextRefreshTimeDisplay()
     }
     
     // Explicitly check if a profile exists in the database
