@@ -4,6 +4,7 @@ import SwiftUI
 struct LeagueInfoView: View {
     let player: Player
     let rankingsData: PlayerRankings?
+    @State private var isLoadingRankings = true
     
     var body: some View {
         VStack(spacing: 0) {
@@ -26,7 +27,7 @@ struct LeagueInfoView: View {
                     
                     // League Icon
                     LeagueIconView(league: league)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8) // Reduced padding
                     
                     Text(league.name)
                         .font(.title2)
@@ -43,7 +44,7 @@ struct LeagueInfoView: View {
                             .fontWeight(.bold)
                             .foregroundColor(Constants.yellow)
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8) // Reduced padding
                     
                     Divider()
                         .background(Color.gray.opacity(0.3))
@@ -53,24 +54,38 @@ struct LeagueInfoView: View {
                     Text("Current Rankings")
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .padding(.top, 15)
-                        .padding(.bottom, 10)
+                        .padding(.top, 12) // Reduced padding
+                        .padding(.bottom, 8) // Reduced padding
                     
                     HStack(spacing: 40) {
-                        // Global Rank
+                                                    // Global Rank
                         VStack(spacing: 8) {
                             Text("Global:")
                                 .font(.headline)
                                 .foregroundColor(.gray)
                             
-                            if let rankings = rankingsData, let globalRank = rankings.globalRank, globalRank > 0 {
+                            // Show loading or rank
+                            if isLoadingRankings {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                                    .frame(height: 26)
+                            } else if let rankings = rankingsData, let globalRank = rankings.globalRank, globalRank > 0 {
                                 Text("#\(globalRank)")
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
-                            } else {
+                            } else if rankingsData != nil {
+                                // Only show "Unranked" if we've received data and confirmed there's no rank
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
+                            } else {
+                                // This handles the case where rankingsData is nil but we're no longer loading
+                                // Could happen if API call failed or timed out
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                                    .frame(height: 26)
                             }
                         }
                         
@@ -80,18 +95,32 @@ struct LeagueInfoView: View {
                                 .font(.headline)
                                 .foregroundColor(.gray)
                             
-                            if let rankings = rankingsData, let localRank = rankings.localRank, localRank > 0 {
+                            // Show loading or rank
+                            if isLoadingRankings {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                                    .frame(height: 26)
+                            } else if let rankings = rankingsData, let localRank = rankings.localRank, localRank > 0 {
                                 Text("#\(localRank)")
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
-                            } else {
+                            } else if rankingsData != nil {
+                                // Only show "Unranked" if we've received data and confirmed there's no rank
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
+                            } else {
+                                // This handles the case where rankingsData is nil but we're no longer loading
+                                // Could happen if API call failed or timed out
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(0.8)
+                                    .frame(height: 26)
                             }
                         }
                     }
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8) // Reduced padding
                     
                     Divider()
                         .background(Color.gray.opacity(0.3))
@@ -101,17 +130,17 @@ struct LeagueInfoView: View {
                     Text("All time best")
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .padding(.top, 15)
+                        .padding(.top, 12) // Reduced padding
                     
                     // Get the all-time best league based on trophy count
                     let bestLeague = getLeagueFromTrophies(player.bestTrophies)
                     
-                    // Best League Icon - now using the determined league from trophy count
+                    // Best League Icon
                     Image(bestLeague.iconName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8) // Reduced padding
                     
                     Text(bestLeague.name)
                         .font(.headline)
@@ -125,7 +154,7 @@ struct LeagueInfoView: View {
                             .fontWeight(.bold)
                             .foregroundColor(Constants.yellow)
                     }
-                    .padding(.bottom, 15)
+                    .padding(.bottom, 12) // Reduced padding
                 } else {
                     Text("Unranked")
                         .font(.headline)
@@ -134,6 +163,21 @@ struct LeagueInfoView: View {
             }
             .padding(.horizontal)
             .background(Constants.bgCard)
+            .onAppear {
+                // Start with loading state based on whether rankings data exists
+                if rankingsData == nil && player.league?.name.contains("Legend") == true {
+                    // Only show loading if this is Legend League and we're expecting rankings
+                    isLoadingRankings = true
+                    
+                    // Auto-disable loading after a timeout to prevent infinite loading
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        isLoadingRankings = false
+                    }
+                } else {
+                    // Either data already exists or not needed
+                    isLoadingRankings = false
+                }
+            }
         }
         .background(Constants.bgDark)
         .cornerRadius(Constants.cornerRadius)
