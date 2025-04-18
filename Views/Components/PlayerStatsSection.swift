@@ -26,7 +26,7 @@ struct PlayerStatsSection: View {
                 // Capital Contribution - with icon
                 SimpleStatRow(
                     label: "Capital Contribution",
-                    value: player.clanCapitalContributions.formatted
+                    value: player.clanCapitalContributions.formatted,
                 )
                 
                 // Attacks Won
