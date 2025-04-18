@@ -5,6 +5,7 @@ struct LeagueInfoView: View {
     let player: Player
     let rankingsData: PlayerRankings?
     @State private var isLoadingRankings = true
+    @State private var loadingTimeoutTimer: Timer? = nil 
     
     var body: some View {
         VStack(spacing: 0) {
@@ -74,18 +75,12 @@ struct LeagueInfoView: View {
                                 Text("#\(globalRank)")
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
-                            } else if rankingsData != nil {
+                            } else {
                                 // Only show "Unranked" if we've received data and confirmed there's no rank
+                                // or if loading timed out
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
-                            } else {
-                                // This handles the case where rankingsData is nil but we're no longer loading
-                                // Could happen if API call failed or timed out
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                                    .frame(height: 26)
                             }
                         }
                         
@@ -105,18 +100,12 @@ struct LeagueInfoView: View {
                                 Text("#\(localRank)")
                                     .font(.system(size: 26, weight: .bold))
                                     .foregroundColor(.white)
-                            } else if rankingsData != nil {
+                            } else {
                                 // Only show "Unranked" if we've received data and confirmed there's no rank
+                                // or if loading timed out
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
                                     .foregroundColor(.white)
-                            } else {
-                                // This handles the case where rankingsData is nil but we're no longer loading
-                                // Could happen if API call failed or timed out
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .scaleEffect(0.8)
-                                    .frame(height: 26)
                             }
                         }
                     }
@@ -164,19 +153,32 @@ struct LeagueInfoView: View {
             .padding(.horizontal)
             .background(Constants.bgCard)
             .onAppear {
-                // Start with loading state based on whether rankings data exists
-                if rankingsData == nil && player.league?.name.contains("Legend") == true {
-                    // Only show loading if this is Legend League and we're expecting rankings
+                // Check if we already have data
+                if rankingsData != nil {
+                    isLoadingRankings = false
+                    return
+                }
+                
+                // Start with loading state if in Legend League
+                if player.league?.name.contains("Legend") == true {
                     isLoadingRankings = true
                     
-                    // Auto-disable loading after a timeout to prevent infinite loading
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                        isLoadingRankings = false
+                    // Create a timer that will automatically stop the loading state after 5 seconds
+                    loadingTimeoutTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                        if isLoadingRankings {
+                            isLoadingRankings = false
+                            print("Rankings loading timed out after 5 seconds")
+                        }
                     }
                 } else {
-                    // Either data already exists or not needed
+                    // Not in Legend League, no need to load
                     isLoadingRankings = false
                 }
+            }
+            .onDisappear {
+                // Clean up the timer when view disappears
+                loadingTimeoutTimer?.invalidate()
+                loadingTimeoutTimer = nil
             }
         }
         .background(Constants.bgDark)

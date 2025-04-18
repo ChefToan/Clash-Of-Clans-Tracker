@@ -5,6 +5,7 @@ struct TrophyProgressionView: View {
     let player: Player
     private let apiService = APIService()
     @State private var chartURL: URL? = nil
+    @State private var cachedImage: UIImage? = nil // Add cached image
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var showFullScreenImage = false
@@ -26,8 +27,20 @@ struct TrophyProgressionView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(1.5)
                         .frame(height: 180) // Reduced minimum height when loading
+                } else if let chartImage = cachedImage {
+                    // Use cached image directly
+                    Image(uiImage: chartImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3)) {
+                                showFullScreenImage = true
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 220)
                 } else if let url = chartURL {
-                    // Chart image display
+                    // Chart image display with caching
                     ZStack {
                         AsyncImage(url: url) { phase in
                             switch phase {
@@ -42,6 +55,12 @@ struct TrophyProgressionView: View {
                                     .onTapGesture {
                                         withAnimation(.spring(response: 0.3)) {
                                             showFullScreenImage = true
+                                        }
+                                    }
+                                    .onAppear {
+                                        // Cache the UIImage when it loads successfully
+                                        if let uiImage = phase.image?.asUIImage() {
+                                            self.cachedImage = uiImage
                                         }
                                     }
                             case .failure:
@@ -111,7 +130,12 @@ struct TrophyProgressionView: View {
             loadChart()
         }
         .fullScreenCover(isPresented: $showFullScreenImage) {
-            if let url = chartURL {
+            if let image = cachedImage {
+                // Use the cached image directly
+                EnhancedImageViewer(cachedImage: image, isPresented: $showFullScreenImage)
+                    .edgesIgnoringSafeArea(.all)
+            } else if let url = chartURL {
+                // Fallback to URL if cached image not available
                 EnhancedImageViewer(imageURL: url, isPresented: $showFullScreenImage)
                     .edgesIgnoringSafeArea(.all)
             }
@@ -121,11 +145,26 @@ struct TrophyProgressionView: View {
     private func loadChart() {
         isLoading = true
         errorMessage = nil
+        cachedImage = nil // Reset cached image when loading a new chart
         
         DispatchQueue.main.async {
             if let url = apiService.getPlayerChartImageURL(tag: player.tag) {
                 self.chartURL = url
-                self.isLoading = false
+                
+                // Prefetch and cache the image
+                URLSession.shared.dataTask(with: url) { data, response, error in
+                    if let data = data, let image = UIImage(data: data) {
+                        DispatchQueue.main.async {
+                            self.cachedImage = image
+                            self.isLoading = false
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            // We'll still try with AsyncImage as fallback
+                            self.isLoading = false
+                        }
+                    }
+                }.resume()
             } else {
                 self.errorMessage = "Invalid player tag format"
                 self.isLoading = false
@@ -134,9 +173,28 @@ struct TrophyProgressionView: View {
     }
 }
 
-// Enhanced image viewer with Twitter-like UX
+// Extension to convert SwiftUI Image to UIImage
+extension Image {
+    func asUIImage() -> UIImage? {
+        let controller = UIHostingController(rootView: self)
+        if let view = controller.view {
+            let contentSize = view.intrinsicContentSize
+            view.bounds = CGRect(origin: .zero, size: contentSize)
+            view.backgroundColor = .clear
+            
+            let renderer = UIGraphicsImageRenderer(size: contentSize)
+            return renderer.image { _ in
+                view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+            }
+        }
+        return nil
+    }
+}
+
+// Enhanced image viewer with caching support
 struct EnhancedImageViewer: View {
-    let imageURL: URL
+    var imageURL: URL? = nil
+    var cachedImage: UIImage? = nil
     @Binding var isPresented: Bool
     
     // Gesture state
@@ -170,149 +228,164 @@ struct EnhancedImageViewer: View {
                 
                 // Image container
                 ZStack {
-                    // Main image
-                    AsyncImage(url: imageURL) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .scaleEffect(1.5)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .scaleEffect(scale)
-                                .offset(offset)
-                                .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
-                        case .failure:
-                            VStack {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.yellow)
-                                Text("Failed to load image")
+                    // Use cached image if available, otherwise load from URL
+                    if let image = cachedImage {
+                        // Display cached image
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .scaleEffect(scale)
+                            .offset(offset)
+                            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
+                    } else if let url = imageURL {
+                        // Fallback to loading from URL
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .scaleEffect(1.5)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .scaleEffect(scale)
+                                    .offset(offset)
+                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
+                            case .failure:
+                                VStack {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 50))
+                                        .foregroundColor(.yellow)
+                                    Text("Failed to load image")
+                                        .foregroundColor(.white)
+                                }
+                            @unknown default:
+                                Text("Unknown error")
                                     .foregroundColor(.white)
                             }
-                        @unknown default:
-                            Text("Unknown error")
-                                .foregroundColor(.white)
                         }
-                    }
-                    .gesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                // Only adjust scale when we're not dragging offscreen
-                                if !draggedOffscreen {
-                                    let delta = value / lastScale
-                                    lastScale = value
-                                    
-                                    // Limit min/max scale with dampening when exceeding limits
-                                    let proposedScale = scale * delta
-                                    if proposedScale < 1.0 {
-                                        scale = 1.0 + (proposedScale - 1.0) * 0.5
-                                    } else if proposedScale > 4.0 {
-                                        scale = 4.0 + (proposedScale - 4.0) * 0.5
-                                    } else {
-                                        scale = proposedScale
-                                    }
-                                }
-                            }
-                            .onEnded { _ in
-                                // Snap back to limits if needed
-                                withAnimation(.interpolatingSpring(stiffness: 230, damping: 22)) {
-                                    scale = max(1.0, min(scale, 4.0))
-                                }
-                                lastScale = 1.0
-                            }
-                    )
-                    .simultaneousGesture(
-                        DragGesture()
-                            .onChanged { value in
-                                let dragAmount = value.translation
-                                
-                                // Special handling for drag-to-dismiss when not zoomed in
-                                if scale <= 1.01 {
-                                    let verticalDrag = abs(dragAmount.height)
-                                    draggedOffscreen = verticalDrag > dismissThreshold
-                                    
-                                    // Adjust background opacity based on drag amount
-                                    backgroundOpacity = 1.0 - (verticalDrag * opacityFactor)
-                                    
-                                    // During vertical drag, allow movement but with resistance
-                                    offset = CGSize(
-                                        width: dragAmount.width,
-                                        height: dragAmount.height
-                                    )
-                                } else {
-                                    // When zoomed in, limit drag to prevent image from getting lost
-                                    let imageSize = geometry.size
-                                    let scaledWidth = imageSize.width * scale
-                                    let scaledHeight = imageSize.height * scale
-                                    
-                                    // Calculate bounds to keep at least 1/3 of the image visible
-                                    let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2) + imageSize.width / 3
-                                    let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2) + imageSize.height / 3
-                                    
-                                    // Add last offset to get total position
-                                    let newX = lastOffset.width + dragAmount.width
-                                    let newY = lastOffset.height + dragAmount.height
-                                    
-                                    // Apply limits with damping when exceeding
-                                    offset = CGSize(
-                                        width: max(-horizontalLimit, min(horizontalLimit, newX)),
-                                        height: max(-verticalLimit, min(verticalLimit, newY))
-                                    )
-                                }
-                            }
-                            .onEnded { value in
-                                // Check if should dismiss
-                                if scale <= 1.01 && abs(value.translation.height) > dismissThreshold {
-                                    // Continue the dismissal animation
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        offset = CGSize(
-                                            width: offset.width,
-                                            height: offset.height * 2
-                                        )
-                                        backgroundOpacity = 0
-                                    }
-                                    
-                                    // Actually dismiss after animation
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        isPresented = false
-                                    }
-                                    return
-                                }
-                                
-                                // If not dismissing, handle normal gesture end
-                                if scale <= 1.01 {
-                                    // If not zoomed, reset position with animation
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        offset = .zero
-                                        backgroundOpacity = 1.0
-                                        draggedOffscreen = false
-                                    }
-                                    lastOffset = .zero
-                                } else {
-                                    // If zoomed, store the offset for next drag
-                                    lastOffset = offset
-                                }
-                            }
-                    )
-                    .onTapGesture(count: 2) {
-                        // Double tap to zoom in/out
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            if scale > 1.01 {
-                                // Reset zoom
-                                scale = 1.0
-                                offset = .zero
-                                lastOffset = .zero
-                            } else {
-                                // Zoom to 2x
-                                scale = 2.0
-                            }
-                        }
+                    } else {
+                        // Neither cached image nor URL is available
+                        Text("No image available")
+                            .foregroundColor(.white)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            // Only adjust scale when we're not dragging offscreen
+                            if !draggedOffscreen {
+                                let delta = value / lastScale
+                                lastScale = value
+                                
+                                // Limit min/max scale with dampening when exceeding limits
+                                let proposedScale = scale * delta
+                                if proposedScale < 1.0 {
+                                    scale = 1.0 + (proposedScale - 1.0) * 0.5
+                                } else if proposedScale > 4.0 {
+                                    scale = 4.0 + (proposedScale - 4.0) * 0.5
+                                } else {
+                                    scale = proposedScale
+                                }
+                            }
+                        }
+                        .onEnded { _ in
+                            // Snap back to limits if needed
+                            withAnimation(.interpolatingSpring(stiffness: 230, damping: 22)) {
+                                scale = max(1.0, min(scale, 4.0))
+                            }
+                            lastScale = 1.0
+                        }
+                )
+                .simultaneousGesture(
+                    DragGesture()
+                        .onChanged { value in
+                            let dragAmount = value.translation
+                            
+                            // Special handling for drag-to-dismiss when not zoomed in
+                            if scale <= 1.01 {
+                                let verticalDrag = abs(dragAmount.height)
+                                draggedOffscreen = verticalDrag > dismissThreshold
+                                
+                                // Adjust background opacity based on drag amount
+                                backgroundOpacity = 1.0 - (verticalDrag * opacityFactor)
+                                
+                                // During vertical drag, allow movement but with resistance
+                                offset = CGSize(
+                                    width: dragAmount.width,
+                                    height: dragAmount.height
+                                )
+                            } else {
+                                // When zoomed in, limit drag to prevent image from getting lost
+                                let imageSize = geometry.size
+                                let scaledWidth = imageSize.width * scale
+                                let scaledHeight = imageSize.height * scale
+                                
+                                // Calculate bounds to keep at least 1/3 of the image visible
+                                let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2) + imageSize.width / 3
+                                let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2) + imageSize.height / 3
+                                
+                                // Add last offset to get total position
+                                let newX = lastOffset.width + dragAmount.width
+                                let newY = lastOffset.height + dragAmount.height
+                                
+                                // Apply limits with damping when exceeding
+                                offset = CGSize(
+                                    width: max(-horizontalLimit, min(horizontalLimit, newX)),
+                                    height: max(-verticalLimit, min(verticalLimit, newY))
+                                )
+                            }
+                        }
+                        .onEnded { value in
+                            // Check if should dismiss
+                            if scale <= 1.01 && abs(value.translation.height) > dismissThreshold {
+                                // Continue the dismissal animation
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    offset = CGSize(
+                                        width: offset.width,
+                                        height: offset.height * 2
+                                    )
+                                    backgroundOpacity = 0
+                                }
+                                
+                                // Actually dismiss after animation
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    isPresented = false
+                                }
+                                return
+                            }
+                            
+                            // If not dismissing, handle normal gesture end
+                            if scale <= 1.01 {
+                                // If not zoomed, reset position with animation
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    offset = .zero
+                                    backgroundOpacity = 1.0
+                                    draggedOffscreen = false
+                                }
+                                lastOffset = .zero
+                            } else {
+                                // If zoomed, store the offset for next drag
+                                lastOffset = offset
+                            }
+                        }
+                )
+                .onTapGesture(count: 2) {
+                    // Double tap to zoom in/out
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        if scale > 1.01 {
+                            // Reset zoom
+                            scale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        } else {
+                            // Zoom to 2x
+                            scale = 2.0
+                        }
+                    }
+                }
                 
                 // Close button
                 VStack {
