@@ -10,9 +10,22 @@
 		03B21DAC2D8CD01C00838329 /* ClashOfClansTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClashOfClansTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		038525D92DB6C128005BB350 /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 03B21DAB2D8CD01C00838329 /* ClashOfClansTracker */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		03B21DAE2D8CD01C00838329 /* ClashOfClansTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				038525D92DB6C128005BB350 /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */,
+			);
 			path = ClashOfClansTracker;
 			sourceTree = "<group>";
 		};
@@ -295,7 +308,9 @@
 				DEVELOPMENT_TEAM = WPXV753AZY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location to do something";
+				INFOPLIST_FILE = ClashOfClansTracker/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app wants to save image to your library";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -336,7 +351,9 @@
 				DEVELOPMENT_TEAM = WPXV753AZY;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location to do something";
+				INFOPLIST_FILE = ClashOfClansTracker/Info.plist;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app wants to save image to your library";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
