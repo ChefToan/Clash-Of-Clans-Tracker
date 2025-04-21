@@ -35,35 +35,6 @@ struct SettingsView: View {
                 .padding(.vertical, 5)
             }
             
-            Section(header: Label("Auto Refresh", systemImage: "arrow.clockwise")) {
-                VStack(alignment: .leading, spacing: 15) {
-                    Toggle("Enable Daily Auto Refresh", isOn: $viewModel.autoRefresh)
-                        .onChange(of: viewModel.autoRefresh) { _, newValue in
-                            viewModel.setAutoRefresh(enabled: newValue)
-                        }
-                    
-                    if viewModel.autoRefresh {
-                        Divider()
-                            .background(Color.gray.opacity(0.3))
-                            .padding(.vertical, 5)
-                            
-                        HStack {
-                            Text("Next refresh:")
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Text(viewModel.getNextRefreshTime())
-                                .fontWeight(.bold)
-                                .foregroundColor(Constants.green)
-                        }
-                    }
-                    
-                    Text("When enabled, your profile will automatically refresh daily at 5:00 AM UTC (\(viewModel.get5AMUTCInUserTimezone()) in your timezone).")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-                .padding(.vertical, 5)
-            }
-            
             // Profile & Data Management section
             Section(header: Label("Profile Management", systemImage: "person")) {
                 Button(action: {

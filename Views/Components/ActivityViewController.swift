@@ -49,10 +49,12 @@ struct ActivityViewController: UIViewControllerRepresentable {
     }
 }
 
+// Enhanced image viewer with caching support
 struct EnhancedImageViewer: View {
     var imageURL: URL? = nil
     var cachedImage: UIImage? = nil
     @Binding var isPresented: Bool
+    var onSaveImage: (() -> Void)? = nil
     
     // Gesture state
     @State private var scale: CGFloat = 1.0
@@ -61,10 +63,6 @@ struct EnhancedImageViewer: View {
     @State private var lastOffset: CGSize = .zero
     @State private var backgroundOpacity: Double = 1.0
     @State private var draggedOffscreen = false
-    
-    // For context menu
-    @State private var showContextMenu = false
-    @State private var currentUIImage: UIImage? = nil
     
     // For drag to dismiss logic
     private let dismissThreshold: CGFloat = 200
@@ -98,15 +96,6 @@ struct EnhancedImageViewer: View {
                             .scaleEffect(scale)
                             .offset(offset)
                             .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
-                            .onLongPressGesture {
-                                // Trigger haptic feedback
-                                HapticManager.shared.mediumImpactFeedback()
-                                
-                                currentUIImage = image
-                                withAnimation {
-                                    showContextMenu = true
-                                }
-                            }
                     } else if let url = imageURL {
                         // Fallback to loading from URL
                         AsyncImage(url: url) { phase in
@@ -122,17 +111,6 @@ struct EnhancedImageViewer: View {
                                     .scaleEffect(scale)
                                     .offset(offset)
                                     .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
-                                    .onLongPressGesture {
-                                        // Trigger haptic feedback
-                                        HapticManager.shared.mediumImpactFeedback()
-                                        
-                                        if let uiImage = image.asUIImage() {
-                                            currentUIImage = uiImage
-                                            withAnimation {
-                                                showContextMenu = true
-                                            }
-                                        }
-                                    }
                             case .failure:
                                 VStack {
                                     Image(systemName: "exclamationmark.triangle")
@@ -157,7 +135,7 @@ struct EnhancedImageViewer: View {
                     MagnificationGesture()
                         .onChanged { value in
                             // Only adjust scale when we're not dragging offscreen
-                            if !draggedOffscreen && !showContextMenu {
+                            if !draggedOffscreen {
                                 let delta = value / lastScale
                                 lastScale = value
                                 
@@ -183,11 +161,6 @@ struct EnhancedImageViewer: View {
                 .simultaneousGesture(
                     DragGesture()
                         .onChanged { value in
-                            // Don't allow dragging when menu is showing
-                            if showContextMenu {
-                                return
-                            }
-                            
                             let dragAmount = value.translation
                             
                             // Special handling for drag-to-dismiss when not zoomed in
@@ -225,11 +198,6 @@ struct EnhancedImageViewer: View {
                             }
                         }
                         .onEnded { value in
-                            // Don't handle gesture end if menu is showing
-                            if showContextMenu {
-                                return
-                            }
-                            
                             // Check if should dismiss
                             if scale <= 1.01 && abs(value.translation.height) > dismissThreshold {
                                 // Continue the dismissal animation
@@ -264,23 +232,21 @@ struct EnhancedImageViewer: View {
                         }
                 )
                 .onTapGesture(count: 2) {
-                    // Double tap to zoom in/out (only if menu not showing)
-                    if !showContextMenu {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            if scale > 1.01 {
-                                // Reset zoom
-                                scale = 1.0
-                                offset = .zero
-                                lastOffset = .zero
-                            } else {
-                                // Zoom to 2x
-                                scale = 2.0
-                            }
+                    // Double tap to zoom in/out
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        if scale > 1.01 {
+                            // Reset zoom
+                            scale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        } else {
+                            // Zoom to 2x
+                            scale = 2.0
                         }
                     }
                 }
                 
-                // Close button
+                // Toolbar with buttons
                 VStack {
                     HStack {
                         Spacer()
@@ -302,34 +268,51 @@ struct EnhancedImageViewer: View {
                     }
                     
                     Spacer()
-                }
-                .opacity(showContextMenu ? 0 : (backgroundOpacity * 0.8))
-                
-                // Reset button (only visible when zoomed)
-                VStack {
-                    Spacer()
                     
-                    Button(action: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            scale = 1.0
-                            offset = .zero
-                            lastOffset = .zero
+                    // Bottom toolbar
+                    HStack(spacing: 20) {
+                        // Save button
+                        Button(action: {
+                            onSaveImage?()
+                        }) {
+                            VStack {
+                                Image(systemName: "square.and.arrow.down")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white)
+                                
+                                Text("Save")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                            }
+                            .frame(width: 60)
+                            .padding(.vertical, 10)
                         }
-                    }) {
-                        Image(systemName: "arrow.counterclockwise.circle.fill")
-                            .font(.system(size: 30))
-                            .foregroundColor(.white.opacity(0.8))
-                            .padding(20)
-                            .contentShape(Rectangle())
+                        
+                        // Reset button (only visible when zoomed)
+                        if scale > 1.01 {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    scale = 1.0
+                                    offset = .zero
+                                    lastOffset = .zero
+                                }
+                            }) {
+                                VStack {
+                                    Image(systemName: "arrow.counterclockwise")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Reset")
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                }
+                                .frame(width: 60)
+                                .padding(.vertical, 10)
+                            }
+                        }
                     }
-                    .opacity(scale > 1.01 && !showContextMenu ? (backgroundOpacity * 0.8) : 0)
-                    .animation(.easeInOut(duration: 0.2), value: scale > 1.01)
-                }
-                
-                // Show custom context menu when long pressed
-                if showContextMenu, let image = currentUIImage {
-                    CustomContextMenu(image: image, isPresented: $showContextMenu)
-                        .zIndex(100)
+                    .padding(.bottom, 30)
+                    .opacity(backgroundOpacity * 0.9)
                 }
             }
         }
@@ -337,6 +320,7 @@ struct EnhancedImageViewer: View {
         .statusBar(hidden: true)
     }
 }
+
 
 extension CustomContextMenu {
     // Save image to photo library with haptic feedback

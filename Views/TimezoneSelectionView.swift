@@ -111,11 +111,6 @@ struct TimezoneSelectionView: View {
                         .padding(.horizontal)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
-                        
-                        Text("Profile will automatically refresh at: \(formatUTCTimeInSelectedTimezone()) daily")
-                            .font(.caption)
-                            .padding(.horizontal)
-                            .lineLimit(2)
                     }
                     .padding(.vertical, 10)
                     .background(Constants.bgCard)
@@ -196,31 +191,6 @@ struct TimezoneSelectionView: View {
     }
     
     // MARK: - Helper Functions
-    
-    private func formatUTCTimeInSelectedTimezone() -> String {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "UTC")!
-        
-        // Use today's date with 5 AM
-        let today = Date()
-        var components = calendar.dateComponents([.year, .month, .day], from: today)
-        components.hour = 5 // 5 AM UTC
-        components.minute = 0
-        
-        guard let utcDate = calendar.date(from: components) else {
-            return "5:00 AM"
-        }
-        
-        let formatter = DateFormatter()
-        formatter.dateStyle = .none
-        formatter.timeStyle = .short
-        
-        if let userTimezone = TimeZone(identifier: selectedTimezone) {
-            formatter.timeZone = userTimezone
-        }
-        
-        return formatter.string(from: utcDate)
-    }
     
     private func formatTimezone(_ timezone: String) -> String {
         guard let tz = TimeZone(identifier: timezone) else { return timezone }

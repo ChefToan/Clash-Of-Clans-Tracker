@@ -103,7 +103,6 @@ struct MyProfileView: View {
             if isFirstLoad {
                 Task {
                     await viewModel.loadProfile()
-                    viewModel.setupAutoRefresh()
                     isFirstLoad = false
                 }
             }

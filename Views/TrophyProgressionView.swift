@@ -1,14 +1,16 @@
 // TrophyProgressionView.swift
 import SwiftUI
+import Photos
 
 struct TrophyProgressionView: View {
     let player: Player
     private let apiService = APIService()
     @State private var chartURL: URL? = nil
-    @State private var cachedImage: UIImage? = nil // Add cached image
+    @State private var cachedImage: UIImage? = nil
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var showFullScreenImage = false
+    @State private var showSaveSuccess = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -22,23 +24,35 @@ struct TrophyProgressionView: View {
             
             // Content
             ZStack {
+                // Fixed height container to maintain consistent size
+                Rectangle()
+                    .fill(Constants.bgCard)
+                    .frame(height: 220)
+                
                 if isLoading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(1.5)
-                        .frame(height: 180) // Reduced minimum height when loading
                 } else if let chartImage = cachedImage {
                     // Use cached image directly
                     Image(uiImage: chartImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 220)
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             withAnimation(.spring(response: 0.3)) {
                                 showFullScreenImage = true
                             }
                         }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 220)
+                        .contextMenu {
+                            Button(action: {
+                                saveImageToPhotoLibrary(chartImage)
+                            }) {
+                                Label("Save to Photos", systemImage: "square.and.arrow.down")
+                            }
+                        }
                 } else if let url = chartURL {
                     // Chart image display with caching
                     ZStack {
@@ -52,9 +66,22 @@ struct TrophyProgressionView: View {
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 220)
+                                    .contentShape(Rectangle())
                                     .onTapGesture {
                                         withAnimation(.spring(response: 0.3)) {
                                             showFullScreenImage = true
+                                        }
+                                    }
+                                    .contextMenu {
+                                        Button(action: {
+                                            if let uiImage = phase.image?.asUIImage() {
+                                                self.cachedImage = uiImage
+                                                saveImageToPhotoLibrary(uiImage)
+                                            }
+                                        }) {
+                                            Label("Save to Photos", systemImage: "square.and.arrow.down")
                                         }
                                     }
                                     .onAppear {
@@ -83,17 +110,12 @@ struct TrophyProgressionView: View {
                                     }
                                     .padding(.top, 10)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 180)
                             @unknown default:
                                 Text("Unknown error")
                                     .foregroundColor(.gray)
                             }
                         }
                     }
-                    .contentShape(Rectangle())
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 220)
                 } else if let error = errorMessage {
                     VStack {
                         Image(systemName: "exclamationmark.triangle")
@@ -116,8 +138,6 @@ struct TrophyProgressionView: View {
                         }
                         .padding(.top, 10)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 180)
                 }
             }
             .padding(.vertical, 8)
@@ -132,20 +152,36 @@ struct TrophyProgressionView: View {
         .fullScreenCover(isPresented: $showFullScreenImage) {
             if let image = cachedImage {
                 // Use the cached image directly
-                EnhancedImageViewer(cachedImage: image, isPresented: $showFullScreenImage)
-                    .edgesIgnoringSafeArea(.all)
+                EnhancedImageViewer(
+                    cachedImage: image,
+                    isPresented: $showFullScreenImage,
+                    onSaveImage: { saveImageToPhotoLibrary(image) }
+                )
+                .edgesIgnoringSafeArea(.all)
             } else if let url = chartURL {
                 // Fallback to URL if cached image not available
-                EnhancedImageViewer(imageURL: url, isPresented: $showFullScreenImage)
-                    .edgesIgnoringSafeArea(.all)
+                EnhancedImageViewer(
+                    imageURL: url,
+                    isPresented: $showFullScreenImage,
+                    onSaveImage: {
+                        if let image = cachedImage {
+                            saveImageToPhotoLibrary(image)
+                        }
+                    }
+                )
+                .edgesIgnoringSafeArea(.all)
             }
+        }
+        .alert("Image Saved", isPresented: $showSaveSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The chart image has been saved to your photo library.")
         }
     }
     
     private func loadChart() {
         isLoading = true
         errorMessage = nil
-        cachedImage = nil // Reset cached image when loading a new chart
         
         DispatchQueue.main.async {
             if let url = apiService.getPlayerChartImageURL(tag: player.tag) {
@@ -171,112 +207,20 @@ struct TrophyProgressionView: View {
             }
         }
     }
-}
-
-struct ShareSheet: UIViewControllerRepresentable {
-    var activityItems: [Any]
-    var applicationActivities: [UIActivity]? = nil
-    @Binding var isPresented: Bool
     
-    func makeUIViewController(context: Context) -> UIViewController {
-        let controller = UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: applicationActivities
-        )
-        controller.completionWithItemsHandler = { _, _, _, _ in
-            isPresented = false
-        }
-        
-        // Prevents "already presenting" errors
-        let hostController = UIViewController()
-        hostController.view.backgroundColor = .clear
-        hostController.modalPresentationStyle = .overFullScreen
-        
-        return hostController
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Present the activity controller from our host controller
-        if isPresented, uiViewController.presentedViewController == nil {
-            // Find the window scene and root controller properly
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let rootController = windowScene.windows.first?.rootViewController else {
+    private func saveImageToPhotoLibrary(_ image: UIImage) {
+        PHPhotoLibrary.requestAuthorization { status in
+            guard status == .authorized else {
+                print("Photo library access denied")
                 return
             }
             
-            // Get the topmost presented controller
-            var topController = rootController
-            while let presented = topController.presentedViewController {
-                topController = presented
-            }
-            
-            // Present from our host controller which is presented from the topmost controller
-            DispatchQueue.main.async {
-                topController.present(uiViewController, animated: true)
-                if let activityViewController = self.createActivityViewController() {
-                    uiViewController.present(activityViewController, animated: true)
-                }
-            }
-        }
-    }
-    
-    private func createActivityViewController() -> UIActivityViewController? {
-        let activityVC = UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: applicationActivities
-        )
-        activityVC.completionWithItemsHandler = { _, _, _, _ in
-            isPresented = false
-        }
-        
-        // On iPad, set the popover presentation
-        if let popover = activityVC.popoverPresentationController {
-            popover.sourceView = UIView()
-            popover.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2,
-                                      y: UIScreen.main.bounds.height / 2,
-                                      width: 0,
-                                      height: 0)
-            popover.permittedArrowDirections = []
-        }
-        
-        return activityVC
-    }
-}
-
-struct ImageActionSheet: UIViewControllerRepresentable {
-    var image: UIImage
-    @Binding var isPresented: Bool
-    
-    func makeUIViewController(context: Context) -> UIViewController {
-        let controller = UIAlertController(
-            title: nil,
-            message: nil,
-            preferredStyle: .actionSheet
-        )
-        
-        // Save to Photos
-        controller.addAction(UIAlertAction(title: "Save to Photos", style: .default) { _ in
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-            HapticManager.shared.successFeedback()
-            isPresented = false
-        })
-        
-        // Copy
-        controller.addAction(UIAlertAction(title: "Copy", style: .default) { _ in
-            UIPasteboard.general.image = image
-            HapticManager.shared.successFeedback()
-            isPresented = false
-        })
-        
-        // Cancel
-        controller.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-            isPresented = false
-        })
-        
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Nothing to update
+            
+            // Show success alert on the main thread
+            DispatchQueue.main.async {
+                showSaveSuccess = true
+            }
+        }
     }
 }
