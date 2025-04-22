@@ -11,6 +11,7 @@ struct TrophyProgressionView: View {
     @State private var errorMessage: String? = nil
     @State private var showFullScreenImage = false
     @State private var showSaveSuccess = false
+    @State private var showContextMenu = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -46,12 +47,10 @@ struct TrophyProgressionView: View {
                                 showFullScreenImage = true
                             }
                         }
-                        .contextMenu {
-                            Button(action: {
-                                saveImageToPhotoLibrary(chartImage)
-                            }) {
-                                Label("Save to Photos", systemImage: "square.and.arrow.down")
-                            }
+                        .onLongPressGesture {
+                            // Trigger haptic feedback
+                            HapticManager.shared.mediumImpactFeedback()
+                            showContextMenu = true
                         }
                 } else if let url = chartURL {
                     // Chart image display with caching
@@ -74,15 +73,16 @@ struct TrophyProgressionView: View {
                                             showFullScreenImage = true
                                         }
                                     }
-                                    .contextMenu {
-                                        Button(action: {
-                                            if let uiImage = phase.image?.asUIImage() {
-                                                self.cachedImage = uiImage
-                                                saveImageToPhotoLibrary(uiImage)
-                                            }
-                                        }) {
-                                            Label("Save to Photos", systemImage: "square.and.arrow.down")
+                                    .onLongPressGesture {
+                                        // Trigger haptic feedback
+                                        HapticManager.shared.mediumImpactFeedback()
+                                        
+                                        // Cache the image if not already done
+                                        if let uiImage = phase.image?.asUIImage() {
+                                            self.cachedImage = uiImage
                                         }
+                                        
+                                        showContextMenu = true
                                     }
                                     .onAppear {
                                         // Cache the UIImage when it loads successfully
@@ -139,6 +139,12 @@ struct TrophyProgressionView: View {
                         .padding(.top, 10)
                     }
                 }
+                
+                // Show context menu when long press is detected
+                if showContextMenu, let image = cachedImage {
+                    CustomContextMenu(image: image, isPresented: $showContextMenu)
+                        .zIndex(100)
+                }
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
@@ -154,20 +160,14 @@ struct TrophyProgressionView: View {
                 // Use the cached image directly
                 EnhancedImageViewer(
                     cachedImage: image,
-                    isPresented: $showFullScreenImage,
-                    onSaveImage: { saveImageToPhotoLibrary(image) }
+                    isPresented: $showFullScreenImage
                 )
                 .edgesIgnoringSafeArea(.all)
             } else if let url = chartURL {
                 // Fallback to URL if cached image not available
                 EnhancedImageViewer(
                     imageURL: url,
-                    isPresented: $showFullScreenImage,
-                    onSaveImage: {
-                        if let image = cachedImage {
-                            saveImageToPhotoLibrary(image)
-                        }
-                    }
+                    isPresented: $showFullScreenImage
                 )
                 .edgesIgnoringSafeArea(.all)
             }
@@ -222,5 +222,23 @@ struct TrophyProgressionView: View {
                 showSaveSuccess = true
             }
         }
+    }
+}
+
+// Extension to convert SwiftUI Image to UIImage
+extension Image {
+    func asUIImage() -> UIImage? {
+        let controller = UIHostingController(rootView: self)
+        if let view = controller.view {
+            let contentSize = view.intrinsicContentSize
+            view.bounds = CGRect(origin: .zero, size: contentSize)
+            view.backgroundColor = .clear
+            
+            let renderer = UIGraphicsImageRenderer(size: contentSize)
+            return renderer.image { _ in
+                view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+            }
+        }
+        return nil
     }
 }
