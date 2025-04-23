@@ -1,7 +1,6 @@
 // EnhancedImageViewer.swift
 import SwiftUI
 
-// Enhanced version of the existing code in EnhancedImageViewer.swift
 struct EnhancedImageViewer: View {
     var imageURL: URL? = nil
     var cachedImage: UIImage? = nil
@@ -53,7 +52,20 @@ struct EnhancedImageViewer: View {
                             .aspectRatio(contentMode: .fit)
                             .scaleEffect(scale)
                             .offset(offset)
-                            .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
+                            .onTapGesture(count: 2) {
+                                // Double tap to zoom in/out
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    if scale <= 1.01 {
+                                        // Zoom in to 2.5x
+                                        scale = 2.5
+                                    } else {
+                                        // Reset to normal view
+                                        scale = 1.0
+                                        offset = .zero
+                                        lastOffset = .zero
+                                    }
+                                }
+                            }
                             .onLongPressGesture {
                                 // Trigger haptic feedback
                                 HapticManager.shared.mediumImpactFeedback()
@@ -63,6 +75,39 @@ struct EnhancedImageViewer: View {
                                     showContextMenu = true
                                 }
                             }
+                            // Add direct drag gesture to the image itself for better tracking
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if scale > 1.01 && !showContextMenu {
+                                            // When zoomed in, make image follow finger directly
+                                            // by adding translation to the last offset
+                                            let imageSize = geometry.size
+                                            let scaledWidth = imageSize.width * scale
+                                            let scaledHeight = imageSize.height * scale
+                                            
+                                            // Calculate maximum permitted drag limits based on scale
+                                            let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
+                                            let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
+                                            
+                                            // Calculate new offset positions with finger tracking
+                                            let newX = lastOffset.width + value.translation.width
+                                            let newY = lastOffset.height + value.translation.height
+                                            
+                                            // Apply limits with less restriction for better tracking
+                                            offset = CGSize(
+                                                width: max(-horizontalLimit, min(horizontalLimit, newX)),
+                                                height: max(-verticalLimit, min(verticalLimit, newY))
+                                            )
+                                        }
+                                    }
+                                    .onEnded { value in
+                                        if scale > 1.01 && !showContextMenu {
+                                            // Store the final position for the next drag
+                                            lastOffset = offset
+                                        }
+                                    }
+                            )
                     } else if let url = imageURL {
                         // Fallback to loading from URL
                         AsyncImage(url: url) { phase in
@@ -77,7 +122,20 @@ struct EnhancedImageViewer: View {
                                     .aspectRatio(contentMode: .fit)
                                     .scaleEffect(scale)
                                     .offset(offset)
-                                    .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.7), value: draggedOffscreen)
+                                    .onTapGesture(count: 2) {
+                                        // Double tap to zoom in/out
+                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                            if scale <= 1.01 {
+                                                // Zoom in to 2.5x
+                                                scale = 2.5
+                                            } else {
+                                                // Reset to normal view
+                                                scale = 1.0
+                                                offset = .zero
+                                                lastOffset = .zero
+                                            }
+                                        }
+                                    }
                                     .onLongPressGesture {
                                         // Trigger haptic feedback
                                         HapticManager.shared.mediumImpactFeedback()
@@ -89,6 +147,39 @@ struct EnhancedImageViewer: View {
                                             }
                                         }
                                     }
+                                    // Add direct drag gesture to the image itself for better tracking
+                                    .gesture(
+                                        DragGesture()
+                                            .onChanged { value in
+                                                if scale > 1.01 && !showContextMenu {
+                                                    // When zoomed in, make image follow finger directly
+                                                    // by adding translation to the last offset
+                                                    let imageSize = geometry.size
+                                                    let scaledWidth = imageSize.width * scale
+                                                    let scaledHeight = imageSize.height * scale
+                                                    
+                                                    // Calculate maximum permitted drag limits based on scale
+                                                    let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
+                                                    let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
+                                                    
+                                                    // Calculate new offset positions with finger tracking
+                                                    let newX = lastOffset.width + value.translation.width
+                                                    let newY = lastOffset.height + value.translation.height
+                                                    
+                                                    // Apply limits with less restriction for better tracking
+                                                    offset = CGSize(
+                                                        width: max(-horizontalLimit, min(horizontalLimit, newX)),
+                                                        height: max(-verticalLimit, min(verticalLimit, newY))
+                                                    )
+                                                }
+                                            }
+                                            .onEnded { value in
+                                                if scale > 1.01 && !showContextMenu {
+                                                    // Store the final position for the next drag
+                                                    lastOffset = offset
+                                                }
+                                            }
+                                    )
                             case .failure:
                                 VStack {
                                     Image(systemName: "exclamationmark.triangle")
@@ -132,6 +223,12 @@ struct EnhancedImageViewer: View {
                             // Snap back to limits if needed
                             withAnimation(.interpolatingSpring(stiffness: 230, damping: 22)) {
                                 scale = max(1.0, min(scale, 4.0))
+                                
+                                // If zoomed back to default size (or very close), reset position
+                                if scale <= 1.01 {
+                                    offset = .zero
+                                    lastOffset = .zero
+                                }
                             }
                             lastScale = 1.0
                         }
@@ -204,7 +301,7 @@ struct EnhancedImageViewer: View {
                         .zIndex(100)
                 }
             }
-            // Apply drag gesture to the entire ZStack
+            // Apply drag gesture to the entire ZStack for drag-to-dismiss functionality
             .gesture(
                 DragGesture()
                     .onChanged { value in
@@ -213,10 +310,9 @@ struct EnhancedImageViewer: View {
                             return
                         }
                         
-                        let dragAmount = value.translation
-                        
-                        // Special handling for drag-to-dismiss when not zoomed in
+                        // Only handle the dismiss drag when not zoomed in
                         if scale <= 1.01 {
+                            let dragAmount = value.translation
                             let verticalDrag = abs(dragAmount.height)
                             draggedOffscreen = verticalDrag > dismissThreshold
                             
@@ -228,25 +324,6 @@ struct EnhancedImageViewer: View {
                                 width: dragAmount.width,
                                 height: dragAmount.height
                             )
-                        } else {
-                            // When zoomed in, limit drag to prevent image from getting lost
-                            let imageSize = geometry.size
-                            let scaledWidth = imageSize.width * scale
-                            let scaledHeight = imageSize.height * scale
-                            
-                            // Calculate bounds to keep at least 1/3 of the image visible
-                            let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2) + imageSize.width / 3
-                            let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2) + imageSize.height / 3
-                            
-                            // Add last offset to get total position
-                            let newX = lastOffset.width + dragAmount.width
-                            let newY = lastOffset.height + dragAmount.height
-                            
-                            // Apply limits with damping when exceeding
-                            offset = CGSize(
-                                width: max(-horizontalLimit, min(horizontalLimit, newX)),
-                                height: max(-verticalLimit, min(verticalLimit, newY))
-                            )
                         }
                     }
                     .onEnded { value in
@@ -255,7 +332,7 @@ struct EnhancedImageViewer: View {
                             return
                         }
                         
-                        // Check if should dismiss
+                        // Check if should dismiss (only when not zoomed)
                         if scale <= 1.01 && abs(value.translation.height) > dismissThreshold {
                             // Continue the dismissal animation
                             withAnimation(.easeOut(duration: 0.2)) {
@@ -273,18 +350,14 @@ struct EnhancedImageViewer: View {
                             return
                         }
                         
-                        // If not dismissing, handle normal gesture end
+                        // If not dismissing and not zoomed, reset position with animation
                         if scale <= 1.01 {
-                            // If not zoomed, reset position with animation
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 offset = .zero
                                 backgroundOpacity = 1.0
                                 draggedOffscreen = false
                             }
                             lastOffset = .zero
-                        } else {
-                            // If zoomed, store the offset for next drag
-                            lastOffset = offset
                         }
                     }
             )
