@@ -12,18 +12,20 @@ struct EnhancedImageViewer: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var backgroundOpacity: Double = 1.0
-    @State private var draggedOffscreen = false
+    @State private var isDragging = false
     
     // For context menu
     @State private var showContextMenu = false
     @State private var currentUIImage: UIImage? = nil
     
     // For drag to dismiss logic
-    private let dismissThreshold: CGFloat = 200
-    private let opacityFactor: CGFloat = 0.005
+    private let dismissThreshold: CGFloat = 150
     
     // For hint text
     @State private var showHint = true
+    
+    // For device orientation
+    @State private var isPortrait = true
     
     var body: some View {
         GeometryReader { geometry in
@@ -33,18 +35,12 @@ struct EnhancedImageViewer: View {
                     .edgesIgnoringSafeArea(.all)
                     .onTapGesture {
                         if scale <= 1.01 {  // Only dismiss on tap if not zoomed in
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                backgroundOpacity = 0
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                isPresented = false
-                            }
+                            dismissViewer()
                         }
                     }
                 
                 // Image container
-                ZStack {
-                    // Use cached image if available, otherwise load from URL
+                Group {
                     if let image = cachedImage {
                         // Display cached image
                         Image(uiImage: image)
@@ -54,12 +50,14 @@ struct EnhancedImageViewer: View {
                             .offset(offset)
                             .onTapGesture(count: 2) {
                                 // Double tap to zoom in/out
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    if scale <= 1.01 {
-                                        // Zoom in to 2.5x
+                                if scale <= 1.01 {
+                                    // Zoom in to 2.5x with standard animation
+                                    withAnimation(.easeOut(duration: 0.25)) {
                                         scale = 2.5
-                                    } else {
-                                        // Reset to normal view
+                                    }
+                                } else {
+                                    // Reset to normal view
+                                    withAnimation(.easeOut(duration: 0.25)) {
                                         scale = 1.0
                                         offset = .zero
                                         lastOffset = .zero
@@ -75,39 +73,6 @@ struct EnhancedImageViewer: View {
                                     showContextMenu = true
                                 }
                             }
-                            // Add direct drag gesture to the image itself for better tracking
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        if scale > 1.01 && !showContextMenu {
-                                            // When zoomed in, make image follow finger directly
-                                            // by adding translation to the last offset
-                                            let imageSize = geometry.size
-                                            let scaledWidth = imageSize.width * scale
-                                            let scaledHeight = imageSize.height * scale
-                                            
-                                            // Calculate maximum permitted drag limits based on scale
-                                            let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
-                                            let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
-                                            
-                                            // Calculate new offset positions with finger tracking
-                                            let newX = lastOffset.width + value.translation.width
-                                            let newY = lastOffset.height + value.translation.height
-                                            
-                                            // Apply limits with less restriction for better tracking
-                                            offset = CGSize(
-                                                width: max(-horizontalLimit, min(horizontalLimit, newX)),
-                                                height: max(-verticalLimit, min(verticalLimit, newY))
-                                            )
-                                        }
-                                    }
-                                    .onEnded { value in
-                                        if scale > 1.01 && !showContextMenu {
-                                            // Store the final position for the next drag
-                                            lastOffset = offset
-                                        }
-                                    }
-                            )
                     } else if let url = imageURL {
                         // Fallback to loading from URL
                         AsyncImage(url: url) { phase in
@@ -124,12 +89,14 @@ struct EnhancedImageViewer: View {
                                     .offset(offset)
                                     .onTapGesture(count: 2) {
                                         // Double tap to zoom in/out
-                                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                            if scale <= 1.01 {
-                                                // Zoom in to 2.5x
+                                        if scale <= 1.01 {
+                                            // Zoom in to 2.5x with standard animation
+                                            withAnimation(.easeOut(duration: 0.25)) {
                                                 scale = 2.5
-                                            } else {
-                                                // Reset to normal view
+                                            }
+                                        } else {
+                                            // Reset to normal view
+                                            withAnimation(.easeOut(duration: 0.25)) {
                                                 scale = 1.0
                                                 offset = .zero
                                                 lastOffset = .zero
@@ -147,39 +114,6 @@ struct EnhancedImageViewer: View {
                                             }
                                         }
                                     }
-                                    // Add direct drag gesture to the image itself for better tracking
-                                    .gesture(
-                                        DragGesture()
-                                            .onChanged { value in
-                                                if scale > 1.01 && !showContextMenu {
-                                                    // When zoomed in, make image follow finger directly
-                                                    // by adding translation to the last offset
-                                                    let imageSize = geometry.size
-                                                    let scaledWidth = imageSize.width * scale
-                                                    let scaledHeight = imageSize.height * scale
-                                                    
-                                                    // Calculate maximum permitted drag limits based on scale
-                                                    let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
-                                                    let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
-                                                    
-                                                    // Calculate new offset positions with finger tracking
-                                                    let newX = lastOffset.width + value.translation.width
-                                                    let newY = lastOffset.height + value.translation.height
-                                                    
-                                                    // Apply limits with less restriction for better tracking
-                                                    offset = CGSize(
-                                                        width: max(-horizontalLimit, min(horizontalLimit, newX)),
-                                                        height: max(-verticalLimit, min(verticalLimit, newY))
-                                                    )
-                                                }
-                                            }
-                                            .onEnded { value in
-                                                if scale > 1.01 && !showContextMenu {
-                                                    // Store the final position for the next drag
-                                                    lastOffset = offset
-                                                }
-                                            }
-                                    )
                             case .failure:
                                 VStack {
                                     Image(systemName: "exclamationmark.triangle")
@@ -200,39 +134,6 @@ struct EnhancedImageViewer: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .gesture(
-                    MagnificationGesture()
-                        .onChanged { value in
-                            // Only adjust scale when we're not dragging offscreen and context menu not showing
-                            if !draggedOffscreen && !showContextMenu {
-                                let delta = value / lastScale
-                                lastScale = value
-                                
-                                // Limit min/max scale with dampening when exceeding limits
-                                let proposedScale = scale * delta
-                                if proposedScale < 1.0 {
-                                    scale = 1.0 + (proposedScale - 1.0) * 0.5
-                                } else if proposedScale > 4.0 {
-                                    scale = 4.0 + (proposedScale - 4.0) * 0.5
-                                } else {
-                                    scale = proposedScale
-                                }
-                            }
-                        }
-                        .onEnded { _ in
-                            // Snap back to limits if needed
-                            withAnimation(.interpolatingSpring(stiffness: 230, damping: 22)) {
-                                scale = max(1.0, min(scale, 4.0))
-                                
-                                // If zoomed back to default size (or very close), reset position
-                                if scale <= 1.01 {
-                                    offset = .zero
-                                    lastOffset = .zero
-                                }
-                            }
-                            lastScale = 1.0
-                        }
-                )
                 
                 // Close button
                 VStack {
@@ -240,12 +141,7 @@ struct EnhancedImageViewer: View {
                         Spacer()
                         
                         Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                backgroundOpacity = 0
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                isPresented = false
-                            }
+                            dismissViewer()
                         }) {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 30))
@@ -264,7 +160,7 @@ struct EnhancedImageViewer: View {
                     Spacer()
                     
                     Button(action: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        withAnimation(.easeOut(duration: 0.25)) {
                             scale = 1.0
                             offset = .zero
                             lastOffset = .zero
@@ -277,7 +173,6 @@ struct EnhancedImageViewer: View {
                             .contentShape(Rectangle())
                     }
                     .opacity(scale > 1.01 && !showContextMenu ? (backgroundOpacity * 0.8) : 0)
-                    .animation(.easeInOut(duration: 0.2), value: scale > 1.01)
                 }
                 
                 // Hint text at bottom
@@ -301,70 +196,16 @@ struct EnhancedImageViewer: View {
                         .zIndex(100)
                 }
             }
-            // Apply drag gesture to the entire ZStack for drag-to-dismiss functionality
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        // Don't handle drag when context menu is showing
-                        if showContextMenu {
-                            return
-                        }
-                        
-                        // Only handle the dismiss drag when not zoomed in
-                        if scale <= 1.01 {
-                            let dragAmount = value.translation
-                            let verticalDrag = abs(dragAmount.height)
-                            draggedOffscreen = verticalDrag > dismissThreshold
-                            
-                            // Adjust background opacity based on drag amount
-                            backgroundOpacity = 1.0 - (verticalDrag * opacityFactor)
-                            
-                            // During vertical drag, allow movement but with resistance
-                            offset = CGSize(
-                                width: dragAmount.width,
-                                height: dragAmount.height
-                            )
-                        }
-                    }
-                    .onEnded { value in
-                        // Don't handle drag end when context menu is showing
-                        if showContextMenu {
-                            return
-                        }
-                        
-                        // Check if should dismiss (only when not zoomed)
-                        if scale <= 1.01 && abs(value.translation.height) > dismissThreshold {
-                            // Continue the dismissal animation
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                offset = CGSize(
-                                    width: offset.width,
-                                    height: offset.height * 2
-                                )
-                                backgroundOpacity = 0
-                            }
-                            
-                            // Actually dismiss after animation
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                isPresented = false
-                            }
-                            return
-                        }
-                        
-                        // If not dismissing and not zoomed, reset position with animation
-                        if scale <= 1.01 {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                offset = .zero
-                                backgroundOpacity = 1.0
-                                draggedOffscreen = false
-                            }
-                            lastOffset = .zero
-                        }
-                    }
-            )
+            // Split gesture handling to separate functions with simplified animations
+            .gesture(dragGesture(geometry: geometry))
+            .gesture(magnificationGesture())
         }
         .transition(.opacity)
         .statusBar(hidden: true)
         .onAppear {
+            // Detect orientation initially
+            updateOrientation()
+            
             // Auto-hide hint after 3 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 withAnimation(.easeOut(duration: 1.0)) {
@@ -372,5 +213,173 @@ struct EnhancedImageViewer: View {
                 }
             }
         }
+        .onChange(of: UIDevice.current.orientation) { _ in
+            updateOrientation()
+        }
+    }
+    
+    // Simple function to dismiss the viewer
+    private func dismissViewer() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            backgroundOpacity = 0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            isPresented = false
+        }
+    }
+    
+    // Separate drag gesture with simplified calculations
+    private func dragGesture(geometry: GeometryProxy) -> some Gesture {
+        DragGesture(minimumDistance: 1, coordinateSpace: .local)
+            .onChanged { value in
+                if showContextMenu { return }
+                
+                if scale > 1.01 {
+                    // Handle panning when zoomed in
+                    let translation = value.translation
+                    let imageSize = geometry.size
+                    let scaledWidth = imageSize.width * scale
+                    let scaledHeight = imageSize.height * scale
+                    
+                    // Calculate maximum permitted drag limits
+                    let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
+                    let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
+                    
+                    var newX = lastOffset.width + translation.width
+                    var newY = lastOffset.height + translation.height
+                    
+                    // Apply constraints to keep image centered when smaller than screen
+                    if scaledWidth <= imageSize.width { newX = 0 }
+                    if scaledHeight <= imageSize.height { newY = 0 }
+                    
+                    // Apply bounds
+                    newX = max(-horizontalLimit, min(horizontalLimit, newX))
+                    newY = max(-verticalLimit, min(verticalLimit, newY))
+                    
+                    // Apply the offset directly without animation
+                    offset = CGSize(width: newX, height: newY)
+                    
+                    isDragging = true
+                } else {
+                    // Handle dismiss gesture (swipe down to dismiss)
+                    let translation = value.translation
+                    
+                    // Only respond to primarily downward swipes
+                    if translation.height > 0 && translation.height > abs(translation.width) {
+                        // Apply downward drag directly
+                        let dragDistance = translation.height
+                        
+                        // Update opacity and offset directly
+                        backgroundOpacity = max(0.3, 1.0 - (dragDistance / 500))
+                        offset = CGSize(
+                            width: translation.width * 0.5,
+                            height: translation.height
+                        )
+                    }
+                }
+            }
+            .onEnded { value in
+                if showContextMenu { return }
+                
+                if scale > 1.01 {
+                    // End panning when zoomed in
+                    let finalVelocity = value.predictedEndLocation.y - value.location.y
+                    let velocity = abs(finalVelocity) > 100 ? finalVelocity * 0.1 : 0
+                    
+                    // Calculate the image bounds
+                    let imageSize = geometry.size
+                    let scaledWidth = imageSize.width * scale
+                    let scaledHeight = imageSize.height * scale
+                    let horizontalLimit = max(0, (scaledWidth - imageSize.width) / 2)
+                    let verticalLimit = max(0, (scaledHeight - imageSize.height) / 2)
+                    
+                    // Apply simplified bounds calculation
+                    var newX = offset.width
+                    var newY = offset.height
+                    
+                    // Apply constraints
+                    if scaledWidth <= imageSize.width { newX = 0 }
+                    else { newX = max(-horizontalLimit, min(horizontalLimit, newX)) }
+                    
+                    if scaledHeight <= imageSize.height { newY = 0 }
+                    else { newY = max(-verticalLimit, min(verticalLimit, newY + velocity)) }
+                    
+                    // Use a simple animation with fixed duration
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        offset = CGSize(width: newX, height: newY)
+                    }
+                    
+                    // Wait for animation to complete before updating last offset
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        lastOffset = offset
+                        isDragging = false
+                    }
+                } else {
+                    // Handle dismiss gesture end
+                    let translation = value.translation
+                    
+                    // Check if swipe down exceeds dismiss threshold
+                    if translation.height > dismissThreshold && translation.height > 0 {
+                        // Simple dismiss animation
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            offset = CGSize(width: 0, height: geometry.size.height)
+                            backgroundOpacity = 0
+                        }
+                        
+                        // Dismiss after animation completes
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            isPresented = false
+                        }
+                    } else {
+                        // Reset position if not dismissing
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            offset = .zero
+                            backgroundOpacity = 1.0
+                        }
+                        lastOffset = .zero
+                    }
+                }
+            }
+    }
+    
+    // Separate magnification gesture with simplified handling
+    private func magnificationGesture() -> some Gesture {
+        MagnificationGesture(minimumScaleDelta: 0.01)
+            .onChanged { value in
+                if showContextMenu { return }
+                
+                // Simple scaling with fixed limits
+                let delta = value / lastScale
+                lastScale = value
+                
+                // Apply scaling directly with clamping
+                let newScale = scale * delta
+                scale = min(max(newScale, 0.8), 4.0)
+            }
+            .onEnded { _ in
+                if showContextMenu { return }
+                
+                // Simple animation with fixed duration
+                withAnimation(.easeOut(duration: 0.2)) {
+                    // Snap to limits
+                    if scale < 1.0 {
+                        scale = 1.0
+                        offset = .zero
+                        lastOffset = .zero
+                    } else if scale > 4.0 {
+                        scale = 4.0
+                    }
+                }
+                
+                // Reset scale tracking
+                lastScale = 1.0
+            }
+    }
+    
+    // Update orientation state
+    private func updateOrientation() {
+        let orientation = UIDevice.current.orientation
+        isPortrait = orientation.isPortrait || (!orientation.isLandscape && !orientation.isFlat)
     }
 }
+
