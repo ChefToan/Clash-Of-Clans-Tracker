@@ -14,6 +14,7 @@ struct EnhancedImageViewer: View {
     @State private var verticalDragOffset: CGFloat = 0
     @State private var isLoading = true
     @State private var isDragging = false
+    @State private var viewSize: CGSize = .zero
     
     // Constants
     private let dismissThreshold: CGFloat = 100
@@ -155,6 +156,10 @@ struct EnhancedImageViewer: View {
                         .zIndex(100)
                 }
             }
+            .onChange(of: geometry.size) { oldSize, newSize in
+                // Track size changes (orientation changes)
+                viewSize = newSize
+            }
         }
         .ignoresSafeArea(.all)
         .statusBar(hidden: true)
@@ -193,7 +198,7 @@ struct EnhancedImageViewer: View {
     }
 }
 
-// Updated method to use Transaction instead of extra functions
+// Helper extension to disable animations
 extension View {
     func withoutAnimation(_ action: @escaping () -> Void) {
         var transaction = Transaction()

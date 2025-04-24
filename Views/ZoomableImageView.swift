@@ -1,4 +1,4 @@
-// ZoomableImageView.swift
+// ZoomableImageView.swift - Updated to handle orientation changes
 import SwiftUI
 import UIKit
 
@@ -47,6 +47,14 @@ struct ZoomableImageView: UIViewRepresentable {
         // Make sure single tap doesn't trigger with double tap
         tapGesture.require(toFail: doubleTapGesture)
         
+        // Add orientation change observer
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.orientationChanged),
+            name: UIDevice.orientationDidChangeNotification,
+            object: nil
+        )
+        
         return scrollView
     }
     
@@ -55,36 +63,16 @@ struct ZoomableImageView: UIViewRepresentable {
               scrollView.bounds.size.width > 0,
               scrollView.bounds.size.height > 0 else { return }
         
-        let scrollViewSize = scrollView.bounds.size
-        let imageSize = image.size
+        // Check if bounds changed significantly (e.g., orientation change or initial layout)
+        let currentSize = scrollView.bounds.size
+        let previousSize = context.coordinator.previousScrollViewSize
         
-        // Initial layout - set only once
-        if context.coordinator.isInitialLayout {
-            // Calculate minimum scale to fit the image properly
-            let widthScale = scrollViewSize.width / imageSize.width
-            let heightScale = scrollViewSize.height / imageSize.height
-            let minScale = min(widthScale, heightScale)
-            
-            // Configure scroll view zoom levels
-            scrollView.minimumZoomScale = minScale
-            scrollView.maximumZoomScale = minScale * 3.0
-            
-            // Initial zoom
-            scrollView.zoomScale = minScale
-            
-            // Size the image
-            imageView.frame = CGRect(origin: .zero, size: CGSize(
-                width: imageSize.width * minScale,
-                height: imageSize.height * minScale
-            ))
-            
-            // Center the content
-            context.coordinator.centerScrollViewContents(scrollView)
-            
-            // Mark initial layout as done
-            DispatchQueue.main.async {
-                context.coordinator.isInitialLayout = false
-            }
+        let sizeChanged = abs(currentSize.width - previousSize.width) > 1 ||
+                          abs(currentSize.height - previousSize.height) > 1
+        
+        if sizeChanged || context.coordinator.isInitialLayout {
+            context.coordinator.previousScrollViewSize = currentSize
+            context.coordinator.updateImageLayout(scrollView)
         }
     }
     
@@ -92,10 +80,16 @@ struct ZoomableImageView: UIViewRepresentable {
         Coordinator(self)
     }
     
+    static func dismantleUIView(_ uiView: UIScrollView, coordinator: Coordinator) {
+        // Remove orientation change observer
+        NotificationCenter.default.removeObserver(coordinator)
+    }
+    
     class Coordinator: NSObject, UIScrollViewDelegate {
         var parent: ZoomableImageView
         var imageView: UIImageView?
         var isInitialLayout = true
+        var previousScrollViewSize: CGSize = .zero
         
         init(_ parent: ZoomableImageView) {
             self.parent = parent
@@ -107,6 +101,59 @@ struct ZoomableImageView: UIViewRepresentable {
         
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
             centerScrollViewContents(scrollView)
+        }
+        
+        @objc func orientationChanged(_ notification: Notification) {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, let scrollView = self.imageView?.superview as? UIScrollView else { return }
+                
+                // Add a slight delay to ensure bounds are updated
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.updateImageLayout(scrollView)
+                }
+            }
+        }
+        
+        func updateImageLayout(_ scrollView: UIScrollView) {
+            guard let imageView = imageView,
+                  scrollView.bounds.size.width > 0,
+                  scrollView.bounds.size.height > 0 else { return }
+            
+            let scrollViewSize = scrollView.bounds.size
+            let imageSize = parent.image.size
+            
+            // Calculate minimum scale to fit the image properly
+            let widthScale = scrollViewSize.width / imageSize.width
+            let heightScale = scrollViewSize.height / imageSize.height
+            let minScale = min(widthScale, heightScale)
+            
+            // Update zoom scales based on new dimensions
+            scrollView.minimumZoomScale = minScale
+            scrollView.maximumZoomScale = minScale * 3.0
+            
+            // If initial layout or orientation change reset to proper fit
+            if isInitialLayout || scrollView.zoomScale < minScale {
+                scrollView.zoomScale = minScale
+            } else {
+                // Maintain zoom level but clamp within valid range
+                scrollView.zoomScale = max(minScale, min(scrollView.zoomScale, minScale * 3.0))
+            }
+            
+            // Resize image view based on current zoom
+            imageView.frame = CGRect(
+                x: 0,
+                y: 0,
+                width: imageSize.width * scrollView.zoomScale,
+                height: imageSize.height * scrollView.zoomScale
+            )
+            
+            // Center content
+            centerScrollViewContents(scrollView)
+            
+            // Mark initial layout as complete if needed
+            if isInitialLayout {
+                isInitialLayout = false
+            }
         }
         
         func centerScrollViewContents(_ scrollView: UIScrollView) {
