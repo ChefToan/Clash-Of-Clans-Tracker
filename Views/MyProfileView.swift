@@ -9,30 +9,21 @@ struct MyProfileView: View {
     
     var body: some View {
         ZStack {
-            Constants.bgDark.edgesIgnoringSafeArea(.all)
+            Constants.background.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                // Header
-                Text("My Profile")
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Constants.blue)
-                
                 if viewModel.isLoading {
                     Spacer()
                     ProgressView()
                         .scaleEffect(1.5)
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .progressViewStyle(CircularProgressViewStyle(tint: .primary))
                     Spacer()
                 } else if let player = viewModel.player {
                     // Player profile content
                     ScrollView {
                         VStack(spacing: 16) {
-                            // Added top padding here to separate from blue header
                             PlayerProfileView(player: player)
                                 .padding(.horizontal)
-                                .padding(.top, 10) // Added padding at the top
                             
                             LeagueInfoView(
                                 player: player,
@@ -76,7 +67,7 @@ struct MyProfileView: View {
                         
                         Text("Search for a player and claim it as your profile")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                         
@@ -101,6 +92,7 @@ struct MyProfileView: View {
                 }
             }
         }
+        .navigationBarTitleDisplayMode(.large)
         .onAppear {
             // Load profile on first appear
             Task {

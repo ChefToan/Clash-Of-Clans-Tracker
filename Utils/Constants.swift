@@ -2,17 +2,17 @@
 import SwiftUI
 
 struct Constants {
-    // Colors
-    static let bgDark = Color(hex: "#1a1a1a")
-    static let bgCard = Color(hex: "#2a2a2a")
-    static let bgInput = Color(hex: "#3a3a3a")
-    static let textLight = Color.white
-    static let textMuted = Color(hex: "#a0a0a0")
+    // Colors - adjusted for better contrast in light mode
+    static let bgDark = Color(UIColor.systemGray6) // Light background
+    static let bgCard = Color(UIColor.systemGray5) // Card background
+    static let bgHeader = Color(UIColor.systemGray4) // Header background
+    static let textPrimary = Color.primary
+    static let textSecondary = Color.secondary
     static let blue = Color(hex: "#3498db")
     static let orange = Color(hex: "#e67e22")
     static let green = Color(hex: "#2ecc71")
     static let red = Color(hex: "#e74c3c")
-    static let purple = Color(hex: "#9b59b6")
+    static let purple = Color(hex: "#8e44ad")
     static let darkPurple = Color(hex: "#8e44ad")
     static let yellow = Color(hex: "#f1c40f")
     
@@ -21,11 +21,31 @@ struct Constants {
     static let clashKingBaseURL = "https://api.clashk.ing"
     static let clashSpotBaseURL = "https://clashspot.net/en"
     
-    
     // UI Constants
     static let cornerRadius: CGFloat = 12
     static let innerCornerRadius: CGFloat = 10
     static let buttonCornerRadius: CGFloat = 8
+    
+    // Return colors adjusted based on dark/light mode
+    static func dynamicColor(light: Color, dark: Color) -> Color {
+        @AppStorage("isDarkMode") var isDarkMode: Bool = false
+        return isDarkMode ? dark : light
+    }
+    
+    // Dynamic background
+    static var background: Color {
+        dynamicColor(light: bgDark, dark: Color(UIColor.systemGray6).opacity(0.9))
+    }
+    
+    // Dynamic card background
+    static var cardBackground: Color {
+        dynamicColor(light: bgCard, dark: Color(UIColor.systemGray5).opacity(0.9))
+    }
+    
+    // Dynamic header background
+    static var headerBackground: Color {
+        dynamicColor(light: bgHeader, dark: Color.black.opacity(0.5))
+    }
 }
 
 // Helper extension for hex colors

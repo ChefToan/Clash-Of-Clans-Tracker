@@ -13,7 +13,7 @@ struct UnitProgressionSection: View {
                 .fontWeight(.semibold)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.3))
+                .background(Constants.headerBackground)
             
             // Content
             VStack(alignment: .center, spacing: 15) {
@@ -121,9 +121,9 @@ struct UnitProgressionSection: View {
             }
             .padding(.vertical, 15)
             .padding(.horizontal)
-            .background(Constants.bgCard)
+            .background(Constants.cardBackground)
         }
-        .background(Constants.bgDark)
+        .background(Constants.background)
         .cornerRadius(Constants.cornerRadius)
     }
 }

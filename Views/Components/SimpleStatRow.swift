@@ -10,7 +10,7 @@ struct SimpleStatRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
             
             Spacer()
             
@@ -33,7 +33,7 @@ struct SimpleStatRow: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 15)
-        .background(Constants.bgCard)
+        .background(Constants.cardBackground)
         
         Divider()
             .background(Color.gray.opacity(0.3))

@@ -30,16 +30,9 @@ struct SearchPlayersView: View {
     
     var body: some View {
         ZStack {
-            Constants.bgDark.edgesIgnoringSafeArea(.all)
+            Constants.background.edgesIgnoringSafeArea(.all)
             
             VStack {
-                // Header
-                Text("Clash of Clans Tracker")
-                    .font(.headline)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Constants.blue)
-                
                 if viewModel.showPlayerStats, let player = viewModel.player {
                     // Show player stats (now directly after search)
                     PlayerStatsView(
@@ -83,7 +76,7 @@ struct SearchPlayersView: View {
                         }
                     }
                 } else {
-                    // Main search view
+                    // Main search view - No title on this screen
                     Spacer()
                     
                     VStack(spacing: 20) {
@@ -113,7 +106,7 @@ struct SearchPlayersView: View {
                         // Search Container
                         VStack(spacing: 15) {
                             Text("Welcome to Clash of Clans Tracker")
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                                 .font(.headline)
                                 .padding(.bottom, 5)
                             
@@ -121,24 +114,24 @@ struct SearchPlayersView: View {
                                 VStack(alignment: .leading) {
                                     Text("Player Tag")
                                         .font(.caption)
-                                        .foregroundColor(Constants.textMuted)
+                                        .foregroundColor(.secondary)
                                         .padding(.leading, 5)
                                     
                                     // Custom Player Tag Input with # Prefix
                                     HStack(spacing: 0) {
                                         Text("#")
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.primary)
                                             .font(.headline)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 14)
-                                            .background(Constants.bgInput)
+                                            .background(Constants.cardBackground)
                                             .cornerRadius(8, corners: [.topLeft, .bottomLeft])
 
                                         TextField("Enter Player Tag", text: $viewModel.playerTag)
                                             .padding(.vertical, 14)
                                             .padding(.horizontal, 8)
-                                            .background(Constants.bgInput)
-                                            .foregroundColor(.white)
+                                            .background(Constants.cardBackground)
+                                            .foregroundColor(.primary)
                                             .autocapitalization(.none)
                                             .disableAutocorrection(true)
                                             .keyboardType(.asciiCapable)
@@ -168,7 +161,7 @@ struct SearchPlayersView: View {
                             }
                         }
                         .padding()
-                        .background(Constants.bgCard)
+                        .background(Constants.cardBackground)
                         .cornerRadius(15)
                     }
                     .padding(.horizontal)
@@ -182,7 +175,7 @@ struct SearchPlayersView: View {
             if viewModel.isLoading {
                 ProgressView()
                     .scaleEffect(1.5)
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .progressViewStyle(CircularProgressViewStyle(tint: .primary))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color.black.opacity(0.4))
                     .edgesIgnoringSafeArea(.all)
@@ -209,6 +202,9 @@ struct SearchPlayersView: View {
                 .zIndex(100)
             }
         }
+        .navigationBarHidden(!viewModel.showPlayerStats) // Hide navigation bar on search input screen
+        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle(viewModel.showPlayerStats ? "Search Players" : "")
         .alert(isPresented: $viewModel.showError) {
             Alert(
                 title: Text("Error"),

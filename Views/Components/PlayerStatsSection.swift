@@ -12,7 +12,7 @@ struct PlayerStatsSection: View {
                 .fontWeight(.semibold)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.3))
+                .background(Constants.headerBackground)
             
             // Content
             VStack(spacing: 0) {
@@ -68,9 +68,9 @@ struct PlayerStatsSection: View {
                 }
             }
             .padding(.vertical, 5) // Consistent vertical padding
-            .background(Constants.bgCard)
+            .background(Constants.cardBackground)
         }
-        .background(Constants.bgDark)
+        .background(Constants.background)
         .cornerRadius(Constants.cornerRadius)
     }
 }

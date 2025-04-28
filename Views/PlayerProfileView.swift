@@ -12,7 +12,7 @@ struct PlayerProfileView: View {
                 .fontWeight(.semibold)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.3))
+                .background(Constants.headerBackground)
             
             // Content
             HStack(spacing: 20) {
@@ -24,9 +24,9 @@ struct PlayerProfileView: View {
                     
                     Text(player.tag)
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                     
-                    // Town Hall placeholder 
+                    // Town Hall placeholder
                     TownHallIconView(level: player.townHallLevel)
                 }
                 .frame(maxWidth: .infinity)
@@ -40,7 +40,7 @@ struct PlayerProfileView: View {
                         
                         Text(clan.tag)
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(.secondary)
                         
                         // Clan Badge from API
                         ClanBadgeView(clan: clan)
@@ -61,9 +61,9 @@ struct PlayerProfileView: View {
             }
             .padding(.vertical, 15)
             .padding(.horizontal, 10)
-            .background(Constants.bgCard)
+            .background(Constants.cardBackground)
         }
-        .background(Constants.bgDark)
+        .background(Constants.background)
         .cornerRadius(Constants.cornerRadius)
     }
     

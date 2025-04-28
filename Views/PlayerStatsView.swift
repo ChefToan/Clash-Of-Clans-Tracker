@@ -91,7 +91,7 @@ struct PlayerStatsView: View {
             updateViewModelWithPlayer()
             isRefreshing = false
         }
-        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .background(Color(UIColor.systemGray6)) // Light gray background
         .onAppear {
             updateViewModelWithPlayer()
         }

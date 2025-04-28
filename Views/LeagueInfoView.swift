@@ -15,7 +15,7 @@ struct LeagueInfoView: View {
                 .fontWeight(.semibold)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.3))
+                .background(Constants.headerBackground)
             
             // Content
             VStack(spacing: 0) {
@@ -250,7 +250,7 @@ struct LeagueInfoView: View {
                 }
             }
             .padding(.horizontal, 0) // Remove horizontal padding to match header width
-            .background(Constants.bgCard)
+            .background(Constants.cardBackground)
             .onAppear {
                 // Check if we already have data
                 if rankingsData != nil {
@@ -280,7 +280,7 @@ struct LeagueInfoView: View {
                 loadingTimeoutTimer = nil
             }
         }
-        .background(Constants.bgDark)
+        .background(Constants.background)
         .cornerRadius(Constants.cornerRadius)
     }
     

@@ -7,9 +7,25 @@ struct SettingsView: View {
     @State private var showRemoveProfileConfirmation = false
     @EnvironmentObject var appState: AppState
     @ObservedObject var tabState = TabState.shared
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     
     var body: some View {
         List {
+            // Appearance section
+            Section(header: Label("Appearance", systemImage: "paintbrush")) {
+                Toggle(isOn: $isDarkMode) {
+                    HStack {
+                        Image(systemName: isDarkMode ? "moon.fill" : "sun.max.fill")
+                            .foregroundColor(isDarkMode ? .yellow : .orange)
+                        Text("Dark Mode")
+                    }
+                }
+                .onChange(of: isDarkMode) { _, _ in
+                    // Trigger haptic feedback on change
+                    HapticManager.shared.selectionFeedback()
+                }
+            }
+            
             // Profile Management section
             Section(header: Label("Profile Management", systemImage: "person")) {
                 Button(action: {
@@ -56,8 +72,8 @@ struct SettingsView: View {
                 .padding(.vertical, 5)
             }
         }
-        .navigationTitle("Settings")
-        .background(Constants.bgDark)
+        .background(Constants.background)
+        .scrollContentBackground(.hidden)
         .listStyle(InsetGroupedListStyle())
         .overlay(
             Group {
@@ -106,7 +122,7 @@ struct InfoRow: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundColor(.gray)
+                .foregroundColor(.secondary)
             Spacer()
             Text(content)
                 .fontWeight(.medium)

@@ -46,6 +46,7 @@ struct ClashOfClansTrackerApp: App {
     @StateObject private var tabState = TabState.shared
     @StateObject private var appState = AppState.shared
     @State private var initialTabSet = false
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     
     var body: some Scene {
         WindowGroup {
@@ -55,7 +56,6 @@ struct ClashOfClansTrackerApp: App {
             )) {
                 NavigationStack {
                     SearchPlayersView(tabState: tabState)
-                        .navigationBarHidden(true)
                         .environmentObject(appState)
                 }
                 .tabItem {
@@ -66,7 +66,7 @@ struct ClashOfClansTrackerApp: App {
                 
                 NavigationStack {
                     MyProfileView(tabState: tabState)
-                        .navigationBarHidden(true)
+                        .navigationTitle("My Profile")
                         .environmentObject(appState)
                 }
                 .tabItem {
@@ -86,12 +86,9 @@ struct ClashOfClansTrackerApp: App {
                 }
                 .tag(TabSection.settings)
             }
-            // Force dark mode to match the design
-            .preferredColorScheme(.dark)
-            .environment(\.colorScheme, .dark)
-            // Set up SwiftData model container
+            // Apply dark/light mode based on user preference
+            .preferredColorScheme(isDarkMode ? .dark : .light)
             .modelContainer(dataController.getModelContainer())
-            // Load the shared UserDefaults for state persistence
             .onAppear {
                 setupAppDefaults()
                 setupInitialTab()
