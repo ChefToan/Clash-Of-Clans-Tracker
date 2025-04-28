@@ -5,7 +5,7 @@ struct LeagueInfoView: View {
     let player: Player
     let rankingsData: PlayerRankings?
     @State private var isLoadingRankings = true
-    @State private var loadingTimeoutTimer: Timer? = nil 
+    @State private var loadingTimeoutTimer: Timer? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +28,7 @@ struct LeagueInfoView: View {
                     
                     // League Icon
                     LeagueIconView(league: league)
-                        .padding(.vertical, 8) // Reduced padding
+                        .padding(.vertical, 8)
                     
                     Text(league.name)
                         .font(.title2)
@@ -45,7 +45,7 @@ struct LeagueInfoView: View {
                             .fontWeight(.bold)
                             .foregroundColor(Constants.yellow)
                     }
-                    .padding(.vertical, 8) // Reduced padding
+                    .padding(.vertical, 8)
                     
                     Divider()
                         .background(Color.gray.opacity(0.3))
@@ -55,8 +55,8 @@ struct LeagueInfoView: View {
                     Text("Current Rankings")
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .padding(.top, 12) // Reduced padding
-                        .padding(.bottom, 8) // Reduced padding
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                     
                     HStack(spacing: 40) {
                         // Global Rank
@@ -109,7 +109,7 @@ struct LeagueInfoView: View {
                             }
                         }
                     }
-                    .padding(.vertical, 8) // Reduced padding
+                    .padding(.vertical, 8)
                     
                     Divider()
                         .background(Color.gray.opacity(0.3))
@@ -119,7 +119,7 @@ struct LeagueInfoView: View {
                     Text("All time best")
                         .font(.title3)
                         .fontWeight(.semibold)
-                        .padding(.top, 12) // Reduced padding
+                        .padding(.top, 12)
                     
                     // Get the all-time best league based on trophy count
                     let bestLeague = getLeagueFromTrophies(player.bestTrophies)
@@ -129,7 +129,7 @@ struct LeagueInfoView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
-                        .padding(.vertical, 8) // Reduced padding
+                        .padding(.vertical, 8)
                     
                     Text(bestLeague.name)
                         .font(.headline)
@@ -143,14 +143,113 @@ struct LeagueInfoView: View {
                             .fontWeight(.bold)
                             .foregroundColor(Constants.yellow)
                     }
-                    .padding(.bottom, 12) // Reduced padding
+                    .padding(.bottom, 15)
                 } else {
+                    // Unranked view styled to match the league view
+                    // Current League section
+                    Text("Current League")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .padding(.top, 15)
+                    
+                    // Unranked League Icon
+                    Image("league_unranked")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .padding(.vertical, 8)
+                    
                     Text("Unranked")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    // Trophy Count
+                    HStack {
+                        Image(systemName: "trophy.fill")
+                            .foregroundColor(Constants.yellow)
+                            .font(.title)
+                        
+                        Text("\(player.trophies)")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(Constants.yellow)
+                    }
+                    .padding(.vertical, 8)
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.horizontal)
+                    
+                    // Current Rankings
+                    Text("Current Rankings")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+                    
+                    // Display unranked for both global and local
+                    HStack(spacing: 40) {
+                        // Global Rank
+                        VStack(spacing: 8) {
+                            Text("Global:")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            
+                            Text("Unranked")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        
+                        // Local Rank
+                        VStack(spacing: 8) {
+                            Text("Local:")
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                            
+                            Text("Unranked")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.3))
+                        .padding(.horizontal)
+                    
+                    // All-time best section
+                    Text("All time best")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .padding(.top, 12)
+                    
+                    // Get the all-time best league based on trophy count
+                    let bestLeague = getLeagueFromTrophies(player.bestTrophies)
+                    
+                    // Best League Icon
+                    Image(bestLeague.iconName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .padding(.vertical, 8)
+                    
+                    Text(bestLeague.name)
                         .font(.headline)
-                        .padding()
+                    
+                    // Best trophy count
+                    HStack {
+                        Image(systemName: "trophy.fill")
+                            .foregroundColor(Constants.yellow)
+                        
+                        Text("\(player.bestTrophies)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(Constants.yellow)
+                    }
+                    .padding(.bottom, 15)
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 0) // Remove horizontal padding to match header width
             .background(Constants.bgCard)
             .onAppear {
                 // Check if we already have data

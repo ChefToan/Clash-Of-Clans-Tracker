@@ -34,6 +34,21 @@ struct UnitProgressionSection: View {
                     .frame(height: 30)
                     .padding(.horizontal)
                 
+                // No items case - add placeholder to maintain consistent sizing
+                if allItems.isEmpty {
+                    VStack(spacing: 12) {
+                        Text("No progression data available")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                            .padding(.vertical, 20)
+                        
+                        // Add empty space to ensure minimum height
+                        Spacer()
+                            .frame(height: 40)
+                    }
+                    .frame(minHeight: 150)
+                }
+                
                 // Heroes category
                 if !unitData.heroes.isEmpty {
                     UnitCategoryView(
@@ -104,7 +119,7 @@ struct UnitProgressionSection: View {
                     )
                 }
             }
-            .padding(.vertical)
+            .padding(.vertical, 15)
             .padding(.horizontal)
             .background(Constants.bgCard)
         }

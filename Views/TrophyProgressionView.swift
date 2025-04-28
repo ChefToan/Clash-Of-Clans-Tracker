@@ -110,9 +110,11 @@ struct TrophyProgressionView: View {
                                     }
                                     .padding(.top, 10)
                                 }
+                                .frame(height: 180) // Ensure consistent height
                             @unknown default:
                                 Text("Unknown error")
                                     .foregroundColor(.gray)
+                                    .frame(height: 180) // Ensure consistent height
                             }
                         }
                     }
@@ -138,6 +140,7 @@ struct TrophyProgressionView: View {
                         }
                         .padding(.top, 10)
                     }
+                    .frame(height: 180) // Ensure consistent height
                 }
                 
                 // Show context menu when long press is detected

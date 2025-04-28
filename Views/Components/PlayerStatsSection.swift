@@ -58,7 +58,16 @@ struct PlayerStatsSection: View {
                     label: "Donations Received",
                     value: "\(player.donationsReceived)"
                 )
+                
+                // Add empty space at the bottom if there are no stats to ensure minimum height
+                if player.donations == 0 && player.donationsReceived == 0 &&
+                   player.attackWins == 0 && player.defenseWins == 0 &&
+                   player.warStars == 0 && player.clanCapitalContributions == 0 {
+                    Spacer()
+                        .frame(height: 20)
+                }
             }
+            .padding(.vertical, 5) // Consistent vertical padding
             .background(Constants.bgCard)
         }
         .background(Constants.bgDark)
