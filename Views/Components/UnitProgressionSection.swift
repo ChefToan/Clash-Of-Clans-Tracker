@@ -11,6 +11,7 @@ struct UnitProgressionSection: View {
             Text("UNIT PROGRESSION")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Constants.headerTextColor)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(Constants.headerBackground)

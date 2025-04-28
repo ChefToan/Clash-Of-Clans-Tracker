@@ -34,6 +34,7 @@ class SearchViewModel: ObservableObject {
         guard !formattedTag.isEmpty else {
             errorMessage = "Please enter a player tag"
             showError = true
+            HapticManager.shared.errorFeedback()
             return
         }
         
@@ -47,12 +48,14 @@ class SearchViewModel: ObservableObject {
                 if case .failure(let error) = completion {
                     self?.errorMessage = error.localizedDescription
                     self?.showError = true
+                    HapticManager.shared.errorFeedback()
                 }
             }, receiveValue: { [weak self] player in
                 self?.player = player
                 
                 // Show player stats directly (new flow)
                 self?.showPlayerStats = true
+                HapticManager.shared.successFeedback()
                 
                 // Save player to UserDefaults to allow state persistence
                 self?.saveLastSearchedPlayer(player)
@@ -126,6 +129,7 @@ class SearchViewModel: ObservableObject {
         let saveSuccess = await DataController.shared.savePlayer(player, forceReload: true)
         
         if saveSuccess {
+            HapticManager.shared.successFeedback()
             showSuccess = true
             
             // Post notification for data refresh
@@ -141,6 +145,7 @@ class SearchViewModel: ObservableObject {
                 TabState.shared.selectedTab = .profile
             }
         } else {
+            HapticManager.shared.errorFeedback()
             errorMessage = "Failed to save player profile"
             showError = true
         }

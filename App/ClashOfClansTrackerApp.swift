@@ -25,6 +25,11 @@ class TabState: ObservableObject {
             }
         }
         
+        // Add haptic feedback when changing tabs
+        if tab != selectedTab {
+            HapticManager.shared.selectionFeedback()
+        }
+        
         lastSelectedTab = selectedTab
         selectedTab = tab
     }
@@ -46,7 +51,7 @@ struct ClashOfClansTrackerApp: App {
     @StateObject private var tabState = TabState.shared
     @StateObject private var appState = AppState.shared
     @State private var initialTabSet = false
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = true
     
     var body: some Scene {
         WindowGroup {
@@ -90,7 +95,6 @@ struct ClashOfClansTrackerApp: App {
             .preferredColorScheme(isDarkMode ? .dark : .light)
             .modelContainer(dataController.getModelContainer())
             .onAppear {
-                setupAppDefaults()
                 setupInitialTab()
             }
             .task {
@@ -102,13 +106,6 @@ struct ClashOfClansTrackerApp: App {
             .onChange(of: appState.selectedTab) { _, newTab in
                 tabState.selectedTab = newTab
             }
-        }
-    }
-    
-    private func setupAppDefaults() {
-        // Set initial defaults if they don't exist
-        if UserDefaults.standard.string(forKey: "selectedTimezone") == nil {
-            UserDefaults.standard.set(TimeZone.current.identifier, forKey: "selectedTimezone")
         }
     }
     

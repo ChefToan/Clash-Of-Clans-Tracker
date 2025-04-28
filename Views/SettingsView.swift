@@ -7,7 +7,7 @@ struct SettingsView: View {
     @State private var showRemoveProfileConfirmation = false
     @EnvironmentObject var appState: AppState
     @ObservedObject var tabState = TabState.shared
-    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = true
     
     var body: some View {
         List {
@@ -17,7 +17,8 @@ struct SettingsView: View {
                     HStack {
                         Image(systemName: isDarkMode ? "moon.fill" : "sun.max.fill")
                             .foregroundColor(isDarkMode ? .yellow : .orange)
-                        Text("Dark Mode")
+                        Text(isDarkMode ? "Dark Mode" : "Light Mode")
+                            .foregroundColor(isDarkMode ? .primary : .primary)
                     }
                 }
                 .onChange(of: isDarkMode) { _, _ in
@@ -29,6 +30,7 @@ struct SettingsView: View {
             // Profile Management section
             Section(header: Label("Profile Management", systemImage: "person")) {
                 Button(action: {
+                    HapticManager.shared.mediumImpactFeedback()
                     showRemoveProfileConfirmation = true
                 }) {
                     HStack {
@@ -48,11 +50,14 @@ struct SettingsView: View {
                                     // Notify AppState that profile has been removed
                                     appState.notifyProfileRemoved()
                                     viewModel.showSuccess(message: "Profile removed successfully")
+                                    HapticManager.shared.successFeedback()
                                     
                                     // Redirect to Profile tab after delay
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         tabState.selectedTab = .profile
                                     }
+                                } else {
+                                    HapticManager.shared.errorFeedback()
                                 }
                             }
                         },

@@ -144,7 +144,10 @@ struct SearchPlayersView: View {
                                     .cornerRadius(8)
                                 }
                                 
-                                Button(action: viewModel.searchPlayer) {
+                                Button(action: {
+                                    HapticManager.shared.mediumImpactFeedback()
+                                    viewModel.searchPlayer()
+                                }) {
                                     HStack {
                                         Image(systemName: "magnifyingglass")
                                             .foregroundColor(.white)

@@ -18,6 +18,7 @@ struct PlayerStatsView: View {
                 HStack(spacing: 15) {
                     // Add to My Profile Button
                     Button(action: {
+                        HapticManager.shared.mediumImpactFeedback()
                         onClaimProfile()
                     }) {
                         HStack {
@@ -35,6 +36,7 @@ struct PlayerStatsView: View {
                     
                     // New Search Button
                     Button(action: {
+                        HapticManager.shared.lightImpactFeedback()
                         onBackToSearch()
                     }) {
                         HStack {
@@ -86,6 +88,7 @@ struct PlayerStatsView: View {
             }
         }
         .refreshable {
+            HapticManager.shared.mediumImpactFeedback()
             isRefreshing = true
             await onRefresh()
             updateViewModelWithPlayer()

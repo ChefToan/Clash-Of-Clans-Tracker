@@ -140,6 +140,12 @@ struct PlayerClan: Codable {
     let name: String
     let clanLevel: Int
     let badgeUrls: BadgeUrls?
+    
+    let memberRole: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case tag, name, clanLevel, badgeUrls, memberRole = "role"
+    }
 }
 
 struct BadgeUrls: Codable {

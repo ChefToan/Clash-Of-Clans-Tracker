@@ -9,10 +9,11 @@ struct LeagueInfoView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header - Updated for consistent appearance
             Text("LEAGUE INFO")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Constants.headerTextColor)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(Constants.headerBackground)
@@ -74,13 +75,13 @@ struct LeagueInfoView: View {
                             } else if let rankings = rankingsData, let globalRank = rankings.globalRank, globalRank > 0 {
                                 Text("#\(globalRank)")
                                     .font(.system(size: 26, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Constants.dynamicColor(light: .black, dark: .white))
                             } else {
                                 // Only show "Unranked" if we've received data and confirmed there's no rank
                                 // or if loading timed out
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Constants.dynamicColor(light: .black, dark: .white))
                             }
                         }
                         
@@ -99,13 +100,13 @@ struct LeagueInfoView: View {
                             } else if let rankings = rankingsData, let localRank = rankings.localRank, localRank > 0 {
                                 Text("#\(localRank)")
                                     .font(.system(size: 26, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Constants.dynamicColor(light: .black, dark: .white))
                             } else {
                                 // Only show "Unranked" if we've received data and confirmed there's no rank
                                 // or if loading timed out
                                 Text("Unranked")
                                     .font(.system(size: 22, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(Constants.dynamicColor(light: .black, dark: .white))
                             }
                         }
                     }

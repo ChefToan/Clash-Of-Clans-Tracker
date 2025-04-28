@@ -1,4 +1,3 @@
-// MyProfileView.swift
 import SwiftUI
 import SwiftData
 
@@ -7,12 +6,19 @@ struct MyProfileView: View {
     @ObservedObject var tabState: TabState
     @EnvironmentObject var appState: AppState
     
+    // These properties are for background refresh handling
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var lastRefreshTime: Date? = nil
+    @State private var minimumRefreshInterval: TimeInterval = 300 // 5 minutes
+    @State private var isRefreshing = false
+    
     var body: some View {
         ZStack {
             Constants.background.edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 0) {
-                if viewModel.isLoading {
+                if viewModel.isInitialLoading || (viewModel.isLoading && viewModel.player == nil) {
+                    // Only show loading indicator during initial load or when we have no profile data yet
                     Spacer()
                     ProgressView()
                         .scaleEffect(1.5)
@@ -24,36 +30,59 @@ struct MyProfileView: View {
                         VStack(spacing: 16) {
                             PlayerProfileView(player: player)
                                 .padding(.horizontal)
+                                .id("profile_\(viewModel.refreshID)")
                             
                             LeagueInfoView(
                                 player: player,
                                 rankingsData: viewModel.rankingsData
                             )
                             .padding(.horizontal)
+                            .id("league_\(viewModel.refreshID)")
                             
                             if viewModel.isLegendLeague {
                                 TrophyProgressionView(player: player)
                                     .padding(.horizontal)
+                                    .id("trophy_\(viewModel.refreshID)")
                             }
                             
                             PlayerStatsSection(player: player)
                                 .padding(.horizontal)
+                                .id("stats_\(viewModel.refreshID)")
                             
                             UnitProgressionSection(
                                 player: player,
                                 calculator: viewModel
                             )
                             .padding(.horizontal)
+                            .id("units_\(viewModel.refreshID)")
                             
                             Spacer()
                                 .frame(height: 20)
                         }
+                        .id(viewModel.refreshID)
                     }
                     .refreshable {
-                        await viewModel.refreshProfile()
+                        if isRefreshing {
+                            // Already refreshing, prevent duplicate requests
+                            return
+                        }
+                        
+                        isRefreshing = true
+                        HapticManager.shared.mediumImpactFeedback()
+                        
+                        do {
+                            try await viewModel.refreshProfile()
+                            lastRefreshTime = Date()
+                        } catch {
+                            print("Refresh error handled in view: \(error.localizedDescription)")
+                        }
+                        
+                        isRefreshing = false
                     }
-                } else {
-                    // No profile claimed view
+                    // Only show loading indicator for initial load, not for refreshes
+                    // Removed the overlay for pull-to-refresh operations
+                } else if viewModel.noProfileConfirmed {
+                    // No profile claimed view - only show when we've confirmed no profile exists
                     VStack(spacing: 20) {
                         Spacer()
                         
@@ -72,6 +101,7 @@ struct MyProfileView: View {
                             .padding(.horizontal)
                         
                         Button {
+                            HapticManager.shared.mediumImpactFeedback()
                             tabState.handleTabSelection(.search)
                         } label: {
                             HStack {
@@ -97,6 +127,7 @@ struct MyProfileView: View {
             // Load profile on first appear
             Task {
                 await viewModel.loadProfile()
+                lastRefreshTime = Date()
             }
         }
         .onChange(of: tabState.selectedTab) { _, newValue in
@@ -104,6 +135,22 @@ struct MyProfileView: View {
             if newValue == .profile {
                 Task {
                     await viewModel.loadProfile()
+                    lastRefreshTime = Date()
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                // Check if enough time has passed since last refresh
+                let shouldRefresh = lastRefreshTime == nil ||
+                    Date().timeIntervalSince(lastRefreshTime!) > minimumRefreshInterval
+                    
+                if shouldRefresh {
+                    Task {
+                        print("Background refresh triggered - app returned to foreground")
+                        try? await viewModel.refreshProfile()
+                        lastRefreshTime = Date()
+                    }
                 }
             }
         }

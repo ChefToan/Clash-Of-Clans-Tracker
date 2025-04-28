@@ -19,9 +19,10 @@ struct TrophyProgressionView: View {
             Text("TROPHY PROGRESSION")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Constants.headerTextColor)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.3))
+                .background(Constants.headerBackground)
             
             // Content
             ZStack {
@@ -99,6 +100,7 @@ struct TrophyProgressionView: View {
                                         .foregroundColor(.gray)
                                     
                                     Button(action: {
+                                        HapticManager.shared.lightImpactFeedback()
                                         loadChart()
                                     }) {
                                         Text("Retry")
@@ -129,6 +131,7 @@ struct TrophyProgressionView: View {
                             .padding(.horizontal)
                         
                         Button(action: {
+                            HapticManager.shared.lightImpactFeedback()
                             loadChart()
                         }) {
                             Text("Retry")
@@ -222,6 +225,7 @@ struct TrophyProgressionView: View {
             
             // Show success alert on the main thread
             DispatchQueue.main.async {
+                HapticManager.shared.successFeedback()
                 showSaveSuccess = true
             }
         }

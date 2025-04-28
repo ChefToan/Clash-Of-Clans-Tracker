@@ -10,6 +10,7 @@ struct PlayerProfileView: View {
             Text("PLAYER PROFILE")
                 .font(.headline)
                 .fontWeight(.semibold)
+                .foregroundColor(Constants.headerTextColor)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(Constants.headerBackground)

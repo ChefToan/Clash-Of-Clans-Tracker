@@ -1,4 +1,4 @@
-// DataController.swift - with improved player data saving
+// DataController.swift
 import Foundation
 import SwiftData
 import SwiftUI
@@ -125,6 +125,9 @@ class DataController: ObservableObject {
                 if let clanData = try? jsonEncoder.encode(clan) {
                     playerModel.clanData = clanData
                 }
+            } else {
+                // Clear clan data if player has no clan
+                playerModel.clanData = nil
             }
             
             if let league = player.league {
@@ -132,6 +135,9 @@ class DataController: ObservableObject {
                 if let leagueData = try? jsonEncoder.encode(league) {
                     playerModel.leagueData = leagueData
                 }
+            } else {
+                // Clear league data if player has no league
+                playerModel.leagueData = nil
             }
             
             // Store troops, heroes, spells data
@@ -252,7 +258,7 @@ class DataController: ObservableObject {
             heroes: heroes,
             spells: spells,
             heroEquipment: heroEquipment,
-            role: nil,
+            role: clan?.memberRole,  // Pass role from clan data if available
             builderHallLevel: model.builderHallLevel,
             builderBaseTrophies: model.builderBaseTrophies,
             bestBuilderBaseTrophies: model.bestBuilderBaseTrophies,
@@ -277,12 +283,13 @@ class DataController: ObservableObject {
             if let playerModel = results.first {
                 let player = convertToPlayer(playerModel)
                 
-                // If missing progression data, try to reload from API
-                if (player.troops == nil || player.troops?.isEmpty == true) &&
-                   (player.heroes == nil || player.heroes?.isEmpty == true) &&
-                   (player.spells == nil || player.spells?.isEmpty == true) {
+                // If missing progression data or clan data, try to reload from API
+                if (player.troops == nil || player.troops?.isEmpty == true) ||
+                   (player.heroes == nil || player.heroes?.isEmpty == true) ||
+                   (player.spells == nil || player.spells?.isEmpty == true) ||
+                   (player.clan == nil) {
                     
-                    print("Missing progression data, attempting to refresh from API")
+                    print("Missing data, attempting to refresh from API")
                     // Try to refresh data from API
                     let apiService = APIService()
                     do {

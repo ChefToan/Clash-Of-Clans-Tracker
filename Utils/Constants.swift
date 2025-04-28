@@ -28,7 +28,7 @@ struct Constants {
     
     // Return colors adjusted based on dark/light mode
     static func dynamicColor(light: Color, dark: Color) -> Color {
-        @AppStorage("isDarkMode") var isDarkMode: Bool = false
+        @AppStorage("isDarkMode") var isDarkMode: Bool = true
         return isDarkMode ? dark : light
     }
     
@@ -42,9 +42,14 @@ struct Constants {
         dynamicColor(light: bgCard, dark: Color(UIColor.systemGray5).opacity(0.9))
     }
     
-    // Dynamic header background
+    // Dynamic header background - Using the black color from trophy progression in dark mode
     static var headerBackground: Color {
-        dynamicColor(light: bgHeader, dark: Color.black.opacity(0.5))
+        dynamicColor(light: Color(UIColor.systemGray4), dark: Color.black)
+    }
+    
+    // Dynamic header text color
+    static var headerTextColor: Color {
+        dynamicColor(light: Color.black.opacity(0.8), dark: Color.white)
     }
 }
 
@@ -107,4 +112,3 @@ extension Date {
         return formatter.string(from: self)
     }
 }
-
