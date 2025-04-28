@@ -26,7 +26,7 @@ struct PlayerProfileView: View {
                         .font(.subheadline)
                         .foregroundColor(.gray)
                     
-                    // Town Hall placeholder (will be replaced with actual icon)
+                    // Town Hall placeholder 
                     TownHallIconView(level: player.townHallLevel)
                 }
                 .frame(maxWidth: .infinity)

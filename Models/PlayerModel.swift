@@ -25,6 +25,12 @@ final class PlayerModel {
     var clanData: Data?
     var leagueData: Data?
     
+    // Add new properties for storing unit data
+    var troopsData: Data?
+    var heroesData: Data?
+    var spellsData: Data?
+    var heroEquipmentData: Data?
+    
     init(
         tag: String,
         name: String,
@@ -43,7 +49,11 @@ final class PlayerModel {
         builderBaseTrophies: Int? = nil,
         bestBuilderBaseTrophies: Int? = nil,
         clanData: Data? = nil,
-        leagueData: Data? = nil
+        leagueData: Data? = nil,
+        troopsData: Data? = nil,
+        heroesData: Data? = nil,
+        spellsData: Data? = nil,
+        heroEquipmentData: Data? = nil
     ) {
         self.tag = tag
         self.name = name
@@ -63,5 +73,9 @@ final class PlayerModel {
         self.bestBuilderBaseTrophies = bestBuilderBaseTrophies
         self.clanData = clanData
         self.leagueData = leagueData
+        self.troopsData = troopsData
+        self.heroesData = heroesData
+        self.spellsData = spellsData
+        self.heroEquipmentData = heroEquipmentData
     }
 }

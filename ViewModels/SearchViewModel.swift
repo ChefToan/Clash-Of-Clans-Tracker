@@ -1,4 +1,4 @@
-// SearchViewModel.swift
+// SearchViewModel.swift - with improved profile saving
 import Foundation
 import Combine
 import SwiftUI
@@ -10,7 +10,6 @@ class SearchViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showError = false
     @Published var player: Player?
-    @Published var showTimezoneSelection = false
     @Published var showPlayerStats = false
     @Published var showSuccess = false
     
@@ -105,17 +104,32 @@ class SearchViewModel: ObservableObject {
     
     @MainActor
     func saveProfile(_ player: Player) async {
-        // Show timezone selection when adding to My Profile
-        showTimezoneSelection = true
-        showPlayerStats = false
+        // Make sure we're using the most up-to-date player data with all progression info
+        isLoading = true
+        
+        do {
+            // Get the full player data to ensure we have all progression info
+            let completePlayer = try await apiService.getPlayerAsync(tag: player.tag)
+            
+            // Save the complete player data
+            await completeProfileSave(completePlayer)
+            
+        } catch {
+            errorMessage = "Failed to get complete player data: \(error.localizedDescription)"
+            showError = true
+            isLoading = false
+        }
     }
 
     @MainActor
     func completeProfileSave(_ player: Player) async {
-        let saveSuccess = await DataController.shared.savePlayer(player)
+        let saveSuccess = await DataController.shared.savePlayer(player, forceReload: true)
         
         if saveSuccess {
             showSuccess = true
+            
+            // Post notification for data refresh
+            NotificationCenter.default.post(name: Notification.Name("ProfileUpdated"), object: nil)
             
             // Switch to Profile tab immediately after success message
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -130,12 +144,13 @@ class SearchViewModel: ObservableObject {
             errorMessage = "Failed to save player profile"
             showError = true
         }
+        
+        isLoading = false
     }
     
     func resetToSearchState() {
         playerTag = ""
         player = nil
-        showTimezoneSelection = false
         showPlayerStats = false
         showSuccess = false
         

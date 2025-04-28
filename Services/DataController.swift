@@ -1,4 +1,4 @@
-// DataController.swift
+// DataController.swift - with improved player data saving
 import Foundation
 import SwiftData
 import SwiftUI
@@ -48,7 +48,7 @@ class DataController: ObservableObject {
                 let updatedPlayer = try await apiService.getPlayerAsync(tag: tag)
                 
                 // Save the updated player to SwiftData
-                return await savePlayer(updatedPlayer)
+                return await savePlayer(updatedPlayer, forceReload: true)
             }
             
             return false
@@ -58,8 +58,8 @@ class DataController: ObservableObject {
         }
     }
     
-    // Save player to SwiftData
-    func savePlayer(_ player: Player) async -> Bool {
+    // Save player to SwiftData with improved data handling
+    func savePlayer(_ player: Player, forceReload: Bool = false) async -> Bool {
         do {
             let modelContext = getModelContainer().mainContext
             
@@ -134,6 +134,33 @@ class DataController: ObservableObject {
                 }
             }
             
+            // Store troops, heroes, spells data
+            let jsonEncoder = JSONEncoder()
+            
+            if let troops = player.troops, !troops.isEmpty {
+                if let troopsData = try? jsonEncoder.encode(troops) {
+                    playerModel.troopsData = troopsData
+                }
+            }
+            
+            if let heroes = player.heroes, !heroes.isEmpty {
+                if let heroesData = try? jsonEncoder.encode(heroes) {
+                    playerModel.heroesData = heroesData
+                }
+            }
+            
+            if let spells = player.spells, !spells.isEmpty {
+                if let spellsData = try? jsonEncoder.encode(spells) {
+                    playerModel.spellsData = spellsData
+                }
+            }
+            
+            if let heroEquipment = player.heroEquipment, !heroEquipment.isEmpty {
+                if let equipData = try? jsonEncoder.encode(heroEquipment) {
+                    playerModel.heroEquipmentData = equipData
+                }
+            }
+            
             // Set as my profile
             playerModel.isMyProfile = true
             
@@ -155,11 +182,127 @@ class DataController: ObservableObject {
             // Update UserDefaults to indicate a profile has been claimed
             UserDefaults.standard.set(true, forKey: "hasClaimedProfile")
             
+            // Notify of profile update for proper refreshing of data
+            if forceReload {
+                NotificationCenter.default.post(name: Notification.Name("ProfileUpdated"), object: nil)
+            }
+            
             return true
         } catch {
             print("Failed to save player: \(error)")
             return false
         }
+    }
+    
+    // Convert PlayerModel to Player with full data
+    private func convertToPlayer(_ model: PlayerModel) -> Player {
+        var clan: PlayerClan?
+        if let clanData = model.clanData {
+            let jsonDecoder = JSONDecoder()
+            clan = try? jsonDecoder.decode(PlayerClan.self, from: clanData)
+        }
+        
+        var league: League?
+        if let leagueData = model.leagueData {
+            let jsonDecoder = JSONDecoder()
+            league = try? jsonDecoder.decode(League.self, from: leagueData)
+        }
+        
+        // Decode additional stored data
+        let jsonDecoder = JSONDecoder()
+        
+        var troops: [PlayerItem]? = nil
+        if let troopsData = model.troopsData {
+            troops = try? jsonDecoder.decode([PlayerItem].self, from: troopsData)
+        }
+        
+        var heroes: [PlayerItem]? = nil
+        if let heroesData = model.heroesData {
+            heroes = try? jsonDecoder.decode([PlayerItem].self, from: heroesData)
+        }
+        
+        var spells: [PlayerItem]? = nil
+        if let spellsData = model.spellsData {
+            spells = try? jsonDecoder.decode([PlayerItem].self, from: spellsData)
+        }
+        
+        var heroEquipment: [PlayerItem]? = nil
+        if let equipData = model.heroEquipmentData {
+            heroEquipment = try? jsonDecoder.decode([PlayerItem].self, from: equipData)
+        }
+        
+        // Create a complete Player object with all available data
+        return Player(
+            tag: model.tag,
+            name: model.name,
+            expLevel: model.expLevel,
+            trophies: model.trophies,
+            bestTrophies: model.bestTrophies,
+            donations: model.donations,
+            donationsReceived: model.donationsReceived,
+            attackWins: model.attackWins,
+            defenseWins: model.defenseWins,
+            townHallLevel: model.townHallLevel,
+            townHallWeaponLevel: nil,
+            warStars: model.warStars,
+            clanCapitalContributions: model.clanCapitalContributions,
+            clan: clan,
+            league: league,
+            troops: troops,
+            heroes: heroes,
+            spells: spells,
+            heroEquipment: heroEquipment,
+            role: nil,
+            builderHallLevel: model.builderHallLevel,
+            builderBaseTrophies: model.builderBaseTrophies,
+            bestBuilderBaseTrophies: model.bestBuilderBaseTrophies,
+            legends: nil
+        )
+    }
+    
+    // Get my profile player from SwiftData with complete data
+    func getMyProfile() async -> Player? {
+        do {
+            let modelContext = getModelContainer().mainContext
+            
+            // Use native SwiftData predicate
+            let descriptor = FetchDescriptor<PlayerModel>(
+                predicate: #Predicate<PlayerModel> { model in
+                    model.isMyProfile == true
+                }
+            )
+            
+            let results = try modelContext.fetch(descriptor)
+            
+            if let playerModel = results.first {
+                let player = convertToPlayer(playerModel)
+                
+                // If missing progression data, try to reload from API
+                if (player.troops == nil || player.troops?.isEmpty == true) &&
+                   (player.heroes == nil || player.heroes?.isEmpty == true) &&
+                   (player.spells == nil || player.spells?.isEmpty == true) {
+                    
+                    print("Missing progression data, attempting to refresh from API")
+                    // Try to refresh data from API
+                    let apiService = APIService()
+                    do {
+                        let updatedPlayer = try await apiService.getPlayerAsync(tag: player.tag)
+                        // Save back to database with force reload
+                        _ = await savePlayer(updatedPlayer, forceReload: true)
+                        return updatedPlayer
+                    } catch {
+                        print("Failed to refresh from API: \(error)")
+                        return player
+                    }
+                }
+                
+                return player
+            }
+        } catch {
+            print("Failed to fetch my profile: \(error)")
+        }
+        
+        return nil
     }
     
     // Check if a MyProfile record exists in the database
@@ -184,73 +327,6 @@ class DataController: ObservableObject {
             print("Failed to check for my profile: \(error)")
             return false
         }
-    }
-    
-    // Get my profile player from SwiftData
-    func getMyProfile() async -> Player? {
-        do {
-            let modelContext = getModelContainer().mainContext
-            
-            // Use native SwiftData predicate
-            let descriptor = FetchDescriptor<PlayerModel>(
-                predicate: #Predicate<PlayerModel> { model in
-                    model.isMyProfile == true
-                }
-            )
-            
-            let results = try modelContext.fetch(descriptor)
-            
-            if let playerModel = results.first {
-                return convertToPlayer(playerModel)
-            }
-        } catch {
-            print("Failed to fetch my profile: \(error)")
-        }
-        
-        return nil
-    }
-    
-    // Convert PlayerModel to Player
-    private func convertToPlayer(_ model: PlayerModel) -> Player {
-        var clan: PlayerClan?
-        if let clanData = model.clanData {
-            let jsonDecoder = JSONDecoder()
-            clan = try? jsonDecoder.decode(PlayerClan.self, from: clanData)
-        }
-        
-        var league: League?
-        if let leagueData = model.leagueData {
-            let jsonDecoder = JSONDecoder()
-            league = try? jsonDecoder.decode(League.self, from: leagueData)
-        }
-        
-        // Create a basic Player object with essential data
-        return Player(
-            tag: model.tag,
-            name: model.name,
-            expLevel: model.expLevel,
-            trophies: model.trophies,
-            bestTrophies: model.bestTrophies,
-            donations: model.donations,
-            donationsReceived: model.donationsReceived,
-            attackWins: model.attackWins,
-            defenseWins: model.defenseWins,
-            townHallLevel: model.townHallLevel,
-            townHallWeaponLevel: nil,
-            warStars: model.warStars,
-            clanCapitalContributions: model.clanCapitalContributions,
-            clan: clan,
-            league: league,
-            troops: [],
-            heroes: [],
-            spells: [],
-            heroEquipment: [],
-            role: nil,
-            builderHallLevel: model.builderHallLevel,
-            builderBaseTrophies: model.builderBaseTrophies,
-            bestBuilderBaseTrophies: model.bestBuilderBaseTrophies,
-            legends: nil
-        )
     }
     
     // Remove my profile

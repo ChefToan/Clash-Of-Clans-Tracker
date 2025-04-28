@@ -4,8 +4,8 @@ import SwiftData
 
 struct MyProfileView: View {
     @StateObject private var viewModel = MyProfileViewModel()
-    @State private var isFirstLoad = true
     @ObservedObject var tabState: TabState
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
         ZStack {
@@ -29,8 +29,10 @@ struct MyProfileView: View {
                     // Player profile content
                     ScrollView {
                         VStack(spacing: 16) {
+                            // Added top padding here to separate from blue header
                             PlayerProfileView(player: player)
                                 .padding(.horizontal)
+                                .padding(.top, 10) // Added padding at the top
                             
                             LeagueInfoView(
                                 player: player,
@@ -100,18 +102,23 @@ struct MyProfileView: View {
             }
         }
         .onAppear {
-            if isFirstLoad {
-                Task {
-                    await viewModel.loadProfile()
-                    isFirstLoad = false
-                }
+            // Load profile on first appear
+            Task {
+                await viewModel.loadProfile()
             }
         }
         .onChange(of: tabState.selectedTab) { _, newValue in
+            // Only reload when selecting the profile tab
             if newValue == .profile {
                 Task {
                     await viewModel.loadProfile()
                 }
+            }
+        }
+        .onChange(of: appState.profileRemoved) { _, removed in
+            if removed {
+                // Force a reload when profile is removed
+                NotificationCenter.default.post(name: Notification.Name("ProfileRemoved"), object: nil)
             }
         }
         .alert(isPresented: $viewModel.showError) {

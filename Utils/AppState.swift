@@ -1,4 +1,4 @@
-// AppState.swift
+// AppState.swift - with improvements for profile state
 import SwiftUI
 
 // App-wide state management
@@ -31,7 +31,7 @@ class AppState: ObservableObject {
         profileRemoved = true
         
         // Reset flags after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.resetFlags()
         }
     }

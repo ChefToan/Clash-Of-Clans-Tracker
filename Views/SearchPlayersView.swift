@@ -40,29 +40,13 @@ struct SearchPlayersView: View {
                     .frame(maxWidth: .infinity)
                     .background(Constants.blue)
                 
-                if viewModel.showTimezoneSelection, let player = viewModel.player {
-                    // Show timezone selection when adding to My Profile
-                    TimezoneSelectionView(
-                        playerName: player.name,
-                        onContinue: {
-                            // Save to My Profile after timezone is selected
-                            Task {
-                                await viewModel.completeProfileSave(player)
-                            }
-                        },
-                        onCancel: {
-                            // Return to player stats view
-                            viewModel.showTimezoneSelection = false
-                            viewModel.showPlayerStats = true
-                        }
-                    )
-                } else if viewModel.showPlayerStats, let player = viewModel.player {
+                if viewModel.showPlayerStats, let player = viewModel.player {
                     // Show player stats (now directly after search)
                     PlayerStatsView(
                         player: player,
                         isLegendLeague: playerViewModel.isLegendLeague,
                         onClaimProfile: {
-                            // Show timezone selection first
+                            // Save profile directly without timezone selection
                             Task {
                                 await viewModel.saveProfile(player)
                             }

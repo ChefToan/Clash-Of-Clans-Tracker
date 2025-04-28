@@ -1,4 +1,4 @@
-// MyProfileViewModel.swift
+// MyProfileViewModel.swift - with improved data handling
 import Foundation
 import Combine
 import SwiftUI
@@ -13,8 +13,65 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
     @Published var isLegendLeague = false
     @Published var rankingsData: PlayerRankings?
     
+    // New properties for caching
+    private var lastRefreshTime: Date?
+    private var isInitialLoad = true
+    private var forceRefresh = false
+    
     private let apiService = APIService()
     private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        // Listen for profile updates and removal notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleProfileUpdated),
+            name: Notification.Name("ProfileUpdated"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleProfileRemoved),
+            name: Notification.Name("ProfileRemoved"),
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleProfileUpdated() {
+        // Force reload on profile update
+        DispatchQueue.main.async {
+            self.forceRefresh = true
+            
+            // Reload profile after a small delay
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                await self.loadProfile()
+            }
+        }
+    }
+    
+    @objc private func handleProfileRemoved() {
+        // Clear cached data and force a refresh
+        DispatchQueue.main.async {
+            self.player = nil
+            self.rankingsData = nil
+            self.isLegendLeague = false
+            self.lastRefreshTime = nil
+            self.isInitialLoad = true
+            self.forceRefresh = true
+            
+            // Reload profile after a small delay
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                await self.loadProfile()
+            }
+        }
+    }
     
     nonisolated func calculateProgress(_ items: [PlayerItem]) -> Double {
         guard !items.isEmpty else { return 0.0 }
@@ -50,27 +107,41 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
     }
     
     func loadProfile() async {
-        isLoading = true
-        self.player = nil  // Reset player immediately to avoid stale data
+        // Show loading indicator on initial load or force refresh
+        if isInitialLoad || forceRefresh {
+            isLoading = true
+            
+            if forceRefresh {
+                // Clear any cached data when forcing a refresh
+                self.player = nil
+            }
+        }
         
-        // Regular profile load
+        // Check if we have a cached profile, it's not the initial load, and we're not forcing a refresh
+        if !isInitialLoad && !forceRefresh && player != nil {
+            // Use the cached profile
+            isLoading = false
+            return
+        }
+        
+        // Reset force refresh flag
+        forceRefresh = false
+        
+        // Load profile from database with full unit data
         let savedPlayer = await DataController.shared.getMyProfile()
         if let player = savedPlayer {
-            self.player = player
+            // Check if the player has unit progression data
+            let hasTroops = player.troops != nil && !player.troops!.isEmpty
+            let hasHeroes = player.heroes != nil && !player.heroes!.isEmpty
+            let hasSpells = player.spells != nil && !player.spells!.isEmpty
             
-            // Check if in Legend League
-            if let league = player.league, league.name.contains("Legend") {
-                isLegendLeague = true
-                loadRankingsData(tag: player.tag)
-            } else {
-                isLegendLeague = false
-                rankingsData = nil
-            }
+            // Update profile state with the loaded player data
+            updateProfileState(player)
             
-            // If the saved player has no troop data, try to refresh from API
-            if player.troops == nil || player.troops?.isEmpty == true {
-                print("No troop data found, refreshing from API")
-                await refreshProfile()
+            // If missing unit data, fetch it from the API
+            if !hasTroops || !hasHeroes || !hasSpells {
+                print("Profile is missing unit data, refreshing from API")
+                await refreshProfile(forceUnitRefresh: true)
             } else {
                 isLoading = false
             }
@@ -80,6 +151,22 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
             isLegendLeague = false
             rankingsData = nil
             isLoading = false
+        }
+        
+        // Update initial load flag
+        isInitialLoad = false
+    }
+    
+    private func updateProfileState(_ player: Player) {
+        self.player = player
+        
+        // Check if in Legend League
+        if let league = player.league, league.name.contains("Legend") {
+            isLegendLeague = true
+            loadRankingsData(tag: player.tag)
+        } else {
+            isLegendLeague = false
+            rankingsData = nil
         }
     }
     
@@ -105,7 +192,7 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
             .store(in: &cancellables)
     }
     
-    func refreshProfile() async {
+    func refreshProfile(forceUnitRefresh: Bool = false) async {
         guard let currentPlayer = player else {
             isLoading = false
             return
@@ -116,23 +203,19 @@ class MyProfileViewModel: ObservableObject, ProgressCalculator {
         do {
             let updatedPlayer = try await apiService.getPlayerAsync(tag: currentPlayer.tag)
             
+            // Update the view model with the fresh data
             self.player = updatedPlayer
+            updateProfileState(updatedPlayer)
             
-            // Check if in Legend League
-            if let league = updatedPlayer.league, league.name.contains("Legend") {
-                self.isLegendLeague = true
-                loadRankingsData(tag: updatedPlayer.tag)
-            } else {
-                self.isLegendLeague = false
-                self.rankingsData = nil
-            }
-            
-            // Save updated profile to SwiftData and handle the result
-            let saveResult = await DataController.shared.savePlayer(updatedPlayer)
+            // Save the updated player to SwiftData with force reload if needed
+            let saveResult = await DataController.shared.savePlayer(updatedPlayer, forceReload: forceUnitRefresh)
             if !saveResult {
                 self.errorMessage = "Failed to save profile to database"
                 self.showError = true
             }
+            
+            // Update last refresh time
+            lastRefreshTime = Date()
             
         } catch {
             self.errorMessage = "Failed to refresh profile: \(error.localizedDescription)"
