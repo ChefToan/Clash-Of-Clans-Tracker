@@ -3,7 +3,7 @@
 ## Overview 🚀
 Clash of Clans Tracker is a powerful iOS app designed to help players track their progress and achievements in Clash of Clans. Monitor trophy counts, view detailed unit progression, analyze stats, and track your performance in Legend League—all in a beautifully designed SwiftUI interface with dark mode support.
 
-![Photo](/appdemo.png)
+![Photo](/appdemo1.png)
 ## Features ✨
 - **Player Search**: Easily search for any Clash of Clans player using their tag  
 - **Profile Management**: Save and track your own profile with real-time updates  
