@@ -24,7 +24,7 @@ Clash of Clans Tracker is a powerful iOS app designed to help players track thei
 ## Installation 📲
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/ClashOfClansTracker.git
+   git clone https://github.com/ChefToan/Clash-Of-Clans-Tracker.git
 2. Open the project in Xcode 15 or later
 
 3. Ensure you have iOS 17.0+ SDK installed
