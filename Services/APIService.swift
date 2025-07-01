@@ -8,7 +8,7 @@ class APIService {
     func getPlayerAsync(tag: String) async throws -> Player {
         // Ensure tag has # and is properly URL encoded
         let formattedTag = tag.hasPrefix("#") ? tag : "#\(tag)"
-        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw NSError(
                 domain: "APIService",
                 code: 400,
@@ -16,8 +16,8 @@ class APIService {
             )
         }
         
-        // Create URL for the ChefToan API
-        guard let url = URL(string: "https://api.cheftoan.com/player/\(encodedTag)") else {
+        // Create URL for the ChefToan API with query parameter
+        guard let url = URL(string: "https://api.cheftoan.com/player?tag=\(encodedTag)") else {
             throw NSError(
                 domain: "APIService",
                 code: 400,
@@ -73,7 +73,7 @@ class APIService {
     func getPlayer(tag: String) -> AnyPublisher<Player, Error> {
         // Ensure tag has # and is properly URL encoded
         let formattedTag = tag.hasPrefix("#") ? tag : "#\(tag)"
-        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             let error = NSError(
                 domain: "APIService",
                 code: 400,
@@ -82,8 +82,8 @@ class APIService {
             return Fail(error: error).eraseToAnyPublisher()
         }
         
-        // Create URL for the ChefToan API
-        guard let url = URL(string: "https://api.cheftoan.com/player/\(encodedTag)") else {
+        // Create URL for the ChefToan API with query parameter
+        guard let url = URL(string: "https://api.cheftoan.com/player?tag=\(encodedTag)") else {
             let error = NSError(
                 domain: "APIService",
                 code: 400,
@@ -233,9 +233,15 @@ class APIService {
     // MARK: - Chart Image from external server
     
     func getPlayerChartImageURL(tag: String) -> URL? {
-        // Format the tag for the URL - remove # if it exists, then add it as %23 for URL encoding
+        // Format the tag for the URL - remove # if it exists, then properly encode for query parameter
         let formattedTag = tag.replacingOccurrences(of: "#", with: "").uppercased()
-        return URL(string: "https://api.cheftoan.com/chart/%23\(formattedTag)")
+        let tagWithHash = "#\(formattedTag)"
+        
+        guard let encodedTag = tagWithHash.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+        
+        return URL(string: "https://api.cheftoan.com/chart?tag=\(encodedTag)")
     }
     
     // MARK: - Loading League and Clan Icons
