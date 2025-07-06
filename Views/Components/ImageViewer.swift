@@ -6,16 +6,13 @@ import Kingfisher
 struct ImageViewer: View {
     let url: URL?
     @Binding var isPresented: Bool
-    @State private var scale: CGFloat = 1.0
-    @State private var lastScale: CGFloat = 1.0
-    @State private var offset: CGSize = .zero
-    @State private var lastOffset: CGSize = .zero
     @State private var loadedImage: UIImage?
     @State private var showSaveAlert = false
     @State private var saveAlertMessage = ""
     @State private var isLoadingImage = false
     @State private var dragOffset: CGSize = .zero
     @State private var opacity: Double = 1.0
+    @State private var isDismissing = false
     
     private let dismissThreshold: CGFloat = 150
     
@@ -26,120 +23,35 @@ struct ImageViewer: View {
                 .ignoresSafeArea()
             
             if let url = url {
-                KFImage(url)
-                    .onSuccess { result in
-                        loadedImage = result.image
+                ZoomableImageView(
+                    url: url,
+                    loadedImage: $loadedImage,
+                    dragOffset: $dragOffset,
+                    opacity: $opacity,
+                    dismissThreshold: dismissThreshold,
+                    onDismiss: {
+                        dismissWithAnimation()
                     }
-                    .onFailure { error in
-                        print("Failed to load image: \(error)")
+                )
+                .opacity(opacity)
+                .offset(y: dragOffset.height)
+                .contextMenu {
+                    Button {
+                        saveImage()
+                    } label: {
+                        Label("Save Image", systemImage: "square.and.arrow.down")
                     }
-                    .placeholder {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(1.5)
+                    
+                    Button {
+                        copyImage()
+                    } label: {
+                        Label("Copy Image", systemImage: "doc.on.doc")
                     }
-                    .fade(duration: 0.3)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaleEffect(scale)
-                    .offset(x: offset.width, y: offset.height + dragOffset.height)
-                    .opacity(opacity)
-                    .gesture(
-                        // Only allow drag to dismiss when not zoomed
-                        scale <= 1.0 ?
-                        DragGesture()
-                            .onChanged { value in
-                                dragOffset = value.translation
-                                // Calculate opacity based on drag distance
-                                let progress = Double(abs(value.translation.height) / dismissThreshold)
-                                opacity = max(0.3, 1 - progress * 0.5)
-                            }
-                            .onEnded { value in
-                                if abs(value.translation.height) > dismissThreshold {
-                                    // Dismiss
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        dragOffset.height = value.translation.height > 0 ?
-                                            UIScreen.main.bounds.height : -UIScreen.main.bounds.height
-                                        opacity = 0
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        isPresented = false
-                                    }
-                                } else {
-                                    // Snap back
-                                    withAnimation(.spring()) {
-                                        dragOffset = .zero
-                                        opacity = 1.0
-                                    }
-                                }
-                            }
-                        : nil
-                    )
-                    .simultaneousGesture(
-                        MagnificationGesture()
-                            .onChanged { value in
-                                if dragOffset == .zero { // Only allow zoom when not dragging
-                                    let delta = value / lastScale
-                                    lastScale = value
-                                    scale = min(max(scale * delta, 1), 4)
-                                }
-                            }
-                            .onEnded { _ in
-                                lastScale = 1.0
-                                if scale < 1 {
-                                    withAnimation {
-                                        scale = 1
-                                        offset = .zero
-                                    }
-                                }
-                            }
-                    )
-                    .simultaneousGesture(
-                        scale > 1.0 ?
-                        DragGesture()
-                            .onChanged { value in
-                                offset = CGSize(
-                                    width: lastOffset.width + value.translation.width,
-                                    height: lastOffset.height + value.translation.height
-                                )
-                            }
-                            .onEnded { _ in
-                                lastOffset = offset
-                                if scale <= 1 {
-                                    withAnimation {
-                                        offset = .zero
-                                    }
-                                }
-                            }
-                        : nil
-                    )
-                    .onTapGesture(count: 2) {
-                        withAnimation {
-                            if scale > 1 {
-                                scale = 1
-                                offset = .zero
-                            } else {
-                                scale = 2
-                            }
-                        }
+                    
+                    ShareLink(item: url) {
+                        Label("Share", systemImage: "square.and.arrow.up")
                     }
-                    .contextMenu {
-                        Button {
-                            saveImage()
-                        } label: {
-                            Label("Save Image", systemImage: "square.and.arrow.down")
-                        }
-                        
-                        Button {
-                            copyImage()
-                        } label: {
-                            Label("Copy Image", systemImage: "doc.on.doc")
-                        }
-                        
-                        ShareLink(item: url) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                    }
+                }
             } else {
                 VStack {
                     Image(systemName: "exclamationmark.triangle")
@@ -155,7 +67,7 @@ struct ImageViewer: View {
                 HStack {
                     Spacer()
                     Button {
-                        isPresented = false
+                        dismissWithAnimation()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
@@ -186,6 +98,46 @@ struct ImageViewer: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(saveAlertMessage)
+        }
+        .gesture(
+            // Only allow drag to dismiss when not zoomed and not already dismissing
+            DragGesture()
+                .onChanged { value in
+                    if !isDismissing {
+                        dragOffset = value.translation
+                        let progress = Double(abs(value.translation.height) / dismissThreshold)
+                        opacity = max(0.3, 1 - progress * 0.5)
+                    }
+                }
+                .onEnded { value in
+                    if !isDismissing {
+                        if abs(value.translation.height) > dismissThreshold {
+                            dismissWithAnimation()
+                        } else {
+                            // Snap back
+                            withAnimation(.spring()) {
+                                dragOffset = .zero
+                                opacity = 1.0
+                            }
+                        }
+                    }
+                }
+        )
+    }
+    
+    private func dismissWithAnimation() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        
+        withAnimation(.easeOut(duration: 0.2)) {
+            dragOffset.height = dragOffset.height != 0 ?
+                (dragOffset.height > 0 ? UIScreen.main.bounds.height : -UIScreen.main.bounds.height) :
+                UIScreen.main.bounds.height
+            opacity = 0
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            isPresented = false
         }
     }
     
@@ -287,6 +239,200 @@ struct ImageViewer: View {
             saveAlertMessage = "No image available"
             showSaveAlert = true
             HapticManager.shared.errorFeedback()
+        }
+    }
+}
+
+// MARK: - ZoomableImageView using UIScrollView
+struct ZoomableImageView: UIViewRepresentable {
+    let url: URL
+    @Binding var loadedImage: UIImage?
+    @Binding var dragOffset: CGSize
+    @Binding var opacity: Double
+    let dismissThreshold: CGFloat
+    let onDismiss: () -> Void
+    
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        let imageView = UIImageView()
+        
+        // Configure scroll view
+        scrollView.delegate = context.coordinator
+        scrollView.minimumZoomScale = 1.0
+        scrollView.maximumZoomScale = 4.0
+        scrollView.zoomScale = 1.0
+        scrollView.bouncesZoom = true
+        scrollView.bounces = true
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.backgroundColor = .clear
+        scrollView.contentInsetAdjustmentBehavior = .never
+        
+        // Configure image view
+        imageView.contentMode = .scaleAspectFit
+        imageView.isUserInteractionEnabled = true
+        imageView.backgroundColor = .clear
+        
+        // Add image view to scroll view
+        scrollView.addSubview(imageView)
+        
+        // Store references
+        context.coordinator.scrollView = scrollView
+        context.coordinator.imageView = imageView
+        
+        // Load image
+        context.coordinator.loadImage()
+        
+        // Add double tap gesture
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        imageView.addGestureRecognizer(doubleTap)
+        
+        // Add single tap gesture for dismiss when not zoomed
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
+        singleTap.require(toFail: doubleTap)
+        scrollView.addGestureRecognizer(singleTap)
+        
+        return scrollView
+    }
+    
+    func updateUIView(_ uiView: UIScrollView, context: Context) {
+        // Update if needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIScrollViewDelegate {
+        let parent: ZoomableImageView
+        var scrollView: UIScrollView?
+        var imageView: UIImageView?
+        
+        init(_ parent: ZoomableImageView) {
+            self.parent = parent
+        }
+        
+        func loadImage() {
+            guard let imageView = imageView else { return }
+            
+            KingfisherManager.shared.retrieveImage(with: parent.url) { [weak self] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let imageResult):
+                        let image = imageResult.image
+                        imageView.image = image
+                        self?.parent.loadedImage = image
+                        self?.updateImageViewFrame()
+                    case .failure(let error):
+                        print("Failed to load image: \(error)")
+                    }
+                }
+            }
+        }
+        
+        func updateImageViewFrame() {
+            guard let scrollView = scrollView,
+                  let imageView = imageView,
+                  let image = imageView.image else { return }
+            
+            let scrollViewSize = scrollView.bounds.size
+            let imageSize = image.size
+            
+            // Calculate the size to fit the image in scroll view while maintaining aspect ratio
+            let widthRatio = scrollViewSize.width / imageSize.width
+            let heightRatio = scrollViewSize.height / imageSize.height
+            let ratio = min(widthRatio, heightRatio)
+            
+            let scaledImageSize = CGSize(
+                width: imageSize.width * ratio,
+                height: imageSize.height * ratio
+            )
+            
+            imageView.frame = CGRect(
+                x: 0,
+                y: 0,
+                width: scaledImageSize.width,
+                height: scaledImageSize.height
+            )
+            
+            scrollView.contentSize = scaledImageSize
+            centerImageView()
+        }
+        
+        func centerImageView() {
+            guard let scrollView = scrollView,
+                  let imageView = imageView else { return }
+            
+            let scrollViewSize = scrollView.bounds.size
+            let imageViewSize = imageView.frame.size
+            
+            let horizontalPadding = max(0, (scrollViewSize.width - imageViewSize.width) / 2)
+            let verticalPadding = max(0, (scrollViewSize.height - imageViewSize.height) / 2)
+            
+            scrollView.contentInset = UIEdgeInsets(
+                top: verticalPadding,
+                left: horizontalPadding,
+                bottom: verticalPadding,
+                right: horizontalPadding
+            )
+        }
+        
+        // MARK: - UIScrollViewDelegate
+        
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            return imageView
+        }
+        
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            centerImageView()
+        }
+        
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            // Add haptic feedback when zoom ends
+            if scale > 1.0 {
+                HapticManager.shared.lightImpactFeedback()
+            }
+        }
+        
+        // MARK: - Gesture Handlers
+        
+        @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+            guard let scrollView = scrollView else { return }
+            
+            HapticManager.shared.lightImpactFeedback()
+            
+            if scrollView.zoomScale > 1.0 {
+                // Zoom out
+                scrollView.setZoomScale(1.0, animated: true)
+            } else {
+                // Zoom in to the tapped point
+                let location = gesture.location(in: imageView)
+                let zoomScale: CGFloat = 2.0
+                let zoomRect = zoomRectForScale(zoomScale, center: location)
+                scrollView.zoom(to: zoomRect, animated: true)
+            }
+        }
+        
+        @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+            guard let scrollView = scrollView else { return }
+            
+            // Only dismiss on single tap if not zoomed
+            if scrollView.zoomScale <= 1.0 {
+                parent.onDismiss()
+            }
+        }
+        
+        private func zoomRectForScale(_ scale: CGFloat, center: CGPoint) -> CGRect {
+            guard let scrollView = scrollView else { return .zero }
+            
+            let width = scrollView.frame.size.width / scale
+            let height = scrollView.frame.size.height / scale
+            let x = center.x - (width / 2.0)
+            let y = center.y - (height / 2.0)
+            
+            return CGRect(x: x, y: y, width: width, height: height)
         }
     }
 }

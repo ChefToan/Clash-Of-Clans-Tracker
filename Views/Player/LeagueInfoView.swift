@@ -23,130 +23,141 @@ struct LeagueInfoView: View {
 
             // Content
             VStack(spacing: 20) {
-                // Current League Section
-                VStack(spacing: 12) {
-                    Text("Current League")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    
-                    if let leagueIcon = getLeagueIcon(for: player.league) {
-                        Image(leagueIcon)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
-                    } else {
-                        Image(systemName: "shield.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(Constants.purple)
-                    }
-                    
-                    if let league = player.league {
-                        Text(league.name)
-                            .font(.title2)
-                            .fontWeight(.bold)
+                // Current League and All-time Best Side by Side
+                HStack(spacing: 20) {
+                    // Current League - Left Side
+                    VStack(spacing: 12) {
+                        Text("Current League")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                             .foregroundColor(.white)
-                    }
+                        
+                        if let leagueIcon = getLeagueIcon(for: player.league) {
+                            Image(leagueIcon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                        } else {
+                            Image(systemName: "shield.fill")
+                                .font(.system(size: 45))
+                                .foregroundColor(Constants.purple)
+                        }
+                        
+                        if let league = player.league {
+                            Text(league.name)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
 
-                    HStack(spacing: 8) {
-                        Image(systemName: "trophy.fill")
-                            .foregroundColor(.yellow)
-                            .font(.title3)
+                        HStack(spacing: 4) {
+                            Image(systemName: "trophy.fill")
+                                .foregroundColor(.yellow)
+                                .font(.caption)
 
-                        Text(formatNumber(player.trophies))
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(.yellow)
+                            Text(formatNumber(player.trophies))
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Vertical Divider
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 100)
+                    
+                    // All-time Best - Right Side
+                    VStack(spacing: 12) {
+                        Text("All-time Best")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+
+                        if let bestLeagueIcon = getBestLeagueIcon(trophies: player.bestTrophies) {
+                            Image(bestLeagueIcon)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 60, height: 60)
+                        } else {
+                            Image(systemName: "shield.fill")
+                                .font(.system(size: 45))
+                                .foregroundColor(Constants.purple.opacity(0.8))
+                        }
+
+                        if let bestLeagueName = getBestLeagueName(trophies: player.bestTrophies) {
+                            Text(bestLeagueName)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                        }
+
+                        HStack(spacing: 4) {
+                            Image(systemName: "trophy.fill")
+                                .foregroundColor(.yellow)
+                                .font(.caption)
+
+                            Text(formatNumber(player.bestTrophies))
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
 
-                // Current Rankings (Legends)
+                // Current Rankings (Legends) - Only show if in legends
                 if let legends = player.legends {
                     Divider()
                         .background(Color.gray.opacity(0.3))
                         .padding(.horizontal)
+                    
                     VStack(spacing: 12) {
                         Text("Current Rankings")
-                            .font(.headline)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                             .foregroundColor(.white)
 
-                        HStack(spacing: 60) {
-                            VStack(spacing: 8) {
-                                Text("Global:")
-                                    .font(.body)
+                        HStack(spacing: 40) {
+                            VStack(spacing: 6) {
+                                Text("Global")
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
 
                                 if let rank = legends.globalRank {
                                     Text("#\(formatNumber(rank))")
-                                        .font(.title2)
+                                        .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
                                 } else {
                                     Text("Unranked")
-                                        .font(.title3)
+                                        .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                             }
 
-                            VStack(spacing: 8) {
-                                Text("Local:")
-                                    .font(.body)
+                            VStack(spacing: 6) {
+                                Text("Local")
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
 
                                 if let rank = legends.localRank {
                                     Text("#\(formatNumber(rank))")
-                                        .font(.title2)
+                                        .font(.title3)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
                                 } else {
                                     Text("Unranked")
-                                        .font(.title3)
+                                        .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
                             }
                         }
-                    }
-                    .padding(.top, 8)
-                }
-                
-                Divider()
-                    .background(Color.gray.opacity(0.3))
-                    .padding(.horizontal)
-                
-                // All time best
-                VStack(spacing: 16) {
-                    Text("All time best")
-                        .font(.headline)
-                        .foregroundColor(.white)
-
-                    // Determine best league based on best trophies
-                    if let bestLeagueIcon = getBestLeagueIcon(trophies: player.bestTrophies) {
-                        Image(bestLeagueIcon)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
-                    } else {
-                        Image(systemName: "shield.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(Constants.purple.opacity(0.8))
-                    }
-
-                    if let bestLeagueName = getBestLeagueName(trophies: player.bestTrophies) {
-                        Text(bestLeagueName)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    }
-
-                    HStack(spacing: 8) {
-                        Image(systemName: "trophy.fill")
-                            .foregroundColor(.yellow)
-                            .font(.title3)
-
-                        Text(formatNumber(player.bestTrophies))
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.yellow)
                     }
                 }
             }
