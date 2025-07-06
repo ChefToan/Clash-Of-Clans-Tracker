@@ -1,37 +1,20 @@
-// SearchViewModel.swift - with improved profile saving
+// SearchViewModel.swift
 import Foundation
-import Combine
 import SwiftUI
-import SwiftData
 
+@MainActor
 class SearchViewModel: ObservableObject {
-    @Published var playerTag = ""
+    @Published var searchTag = ""
     @Published var isLoading = false
+    @Published var player: PlayerEssentials?
     @Published var errorMessage: String?
     @Published var showError = false
-    @Published var player: Player?
-    @Published var showPlayerStats = false
     @Published var showSuccess = false
     
-    private let apiService = APIService()
-    private var cancellables = Set<AnyCancellable>()
+    private let apiService = APIService.shared
     
-    init() {
-        // Try to load last searched player on initialization
-        loadLastSearchedPlayer()
-    }
-    
-    func searchPlayer() {
-        // Ensure player tag has # prefix
-        var formattedTag = playerTag.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Add # if it doesn't exist
-        if !formattedTag.hasPrefix("#") {
-            formattedTag = "#\(formattedTag)"
-        }
-        
-        // Validate player tag
-        guard !formattedTag.isEmpty else {
+    func searchPlayer() async {
+        guard !searchTag.isEmpty else {
             errorMessage = "Please enter a player tag"
             showError = true
             HapticManager.shared.errorFeedback()
@@ -39,161 +22,94 @@ class SearchViewModel: ObservableObject {
         }
         
         isLoading = true
+        errorMessage = nil
+        player = nil
         
-        apiService.getPlayer(tag: formattedTag)
-            .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
-                self?.isLoading = false
+        do {
+            let player = try await apiService.getPlayerEssentials(tag: searchTag)
+            self.player = player
+            HapticManager.shared.successFeedback()
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+            HapticManager.shared.errorFeedback()
+        }
+        
+        isLoading = false
+    }
+    
+    func saveAsProfile() async -> Bool {
+        guard let player = player else { return false }
+        
+        isLoading = true
+        
+        do {
+            // Save the profile
+            try await DataController.shared.saveProfile(player)
+            
+            // Verify the save was successful
+            if let savedPlayer = try await DataController.shared.getProfile() {
+                // Post notification with the saved player data
+                NotificationCenter.default.post(
+                    name: Notification.Name("ProfileSaved"),
+                    object: savedPlayer
+                )
                 
-                if case .failure(let error) = completion {
-                    self?.errorMessage = error.localizedDescription
-                    self?.showError = true
-                    HapticManager.shared.errorFeedback()
-                }
-            }, receiveValue: { [weak self] player in
-                self?.player = player
-                
-                // Show player stats directly (new flow)
-                self?.showPlayerStats = true
+                showSuccess = true
                 HapticManager.shared.successFeedback()
                 
-                // Save player to UserDefaults to allow state persistence
-                self?.saveLastSearchedPlayer(player)
-            })
-            .store(in: &cancellables)
+                // Clear search state after a delay
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                
+                self.showSuccess = false
+                
+                isLoading = false
+                return true
+            } else {
+                throw APIError.decodingError
+            }
+        } catch {
+            errorMessage = "Failed to save profile: \(error.localizedDescription)"
+            showError = true
+            HapticManager.shared.errorFeedback()
+            isLoading = false
+            return false
+        }
     }
     
-    @MainActor
-    func refreshPlayerData() async {
-        guard let player = player else { return }
+    func refreshPlayer() async {
+        guard let currentPlayer = player else { return }
         
         isLoading = true
         
         do {
-            // Create a new Task with explicit error handling for cancellation
-            let updatedPlayer = try await Task.detached {
-                do {
-                    return try await self.apiService.getPlayerAsync(tag: player.tag)
-                } catch is CancellationError {
-                    // Handle cancellation gracefully
-                    throw NSError(
-                        domain: "SearchViewModel",
-                        code: -999,
-                        userInfo: [NSLocalizedDescriptionKey: "Refresh operation was cancelled"]
-                    )
-                } catch {
-                    throw error
-                }
-            }.value
-            
-            // Update the player property with the new data
-            self.player = updatedPlayer
-            
-            // Save the updated player to UserDefaults to maintain state
-            saveLastSearchedPlayer(updatedPlayer)
-            
-        } catch is CancellationError {
-            // Handle Task cancellation specifically
-            errorMessage = "Refresh operation was cancelled"
-            showError = true
+            let refreshed = try await apiService.refreshPlayerEssentials(tag: currentPlayer.playerTag)
+            self.player = refreshed
+            HapticManager.shared.successFeedback()
         } catch {
-            // Handle other errors
             errorMessage = "Failed to refresh: \(error.localizedDescription)"
             showError = true
-        }
-        
-        isLoading = false
-    }
-    
-    @MainActor
-    func saveProfile(_ player: Player) async {
-        // Make sure we're using the most up-to-date player data with all progression info
-        isLoading = true
-        
-        do {
-            // Get the full player data to ensure we have all progression info
-            let completePlayer = try await apiService.getPlayerAsync(tag: player.tag)
-            
-            // Save the complete player data
-            await completeProfileSave(completePlayer)
-            
-        } catch {
-            errorMessage = "Failed to get complete player data: \(error.localizedDescription)"
-            showError = true
-            isLoading = false
-        }
-    }
-
-    @MainActor
-    func completeProfileSave(_ player: Player) async {
-        let saveSuccess = await DataController.shared.savePlayer(player, forceReload: true)
-        
-        if saveSuccess {
-            HapticManager.shared.successFeedback()
-            showSuccess = true
-            
-            // Post notification for data refresh
-            NotificationCenter.default.post(name: Notification.Name("ProfileUpdated"), object: nil)
-            
-            // Switch to Profile tab immediately after success message
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                // Clear search state
-                self.resetToSearchState()
-                UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
-                
-                // Force switch to profile tab
-                TabState.shared.selectedTab = .profile
-            }
-        } else {
             HapticManager.shared.errorFeedback()
-            errorMessage = "Failed to save player profile"
-            showError = true
         }
         
         isLoading = false
     }
     
-    func resetToSearchState() {
-        playerTag = ""
+    // Clear just the current player, not the search tag
+    func clearCurrentSearch() {
         player = nil
-        showPlayerStats = false
+        errorMessage = nil
+        showError = false
         showSuccess = false
-        
-        // Clear the saved player when explicitly returning to search
-        UserDefaults.standard.removeObject(forKey: "lastSearchedPlayer")
+        // Keep searchTag so user can modify their search
     }
     
-    // Save last searched player to maintain state when switching tabs
-    private func saveLastSearchedPlayer(_ player: Player) {
-        // Encode player to JSON
-        do {
-            let encoder = JSONEncoder()
-            let playerData = try encoder.encode(player)
-            UserDefaults.standard.set(playerData, forKey: "lastSearchedPlayer")
-            UserDefaults.standard.set(Date(), forKey: "lastSearchTimestamp")
-        } catch {
-            print("Failed to save player to UserDefaults: \(error)")
-        }
-    }
-    
-    // Load last searched player when returning to tab
-    private func loadLastSearchedPlayer() {
-        // Check if we have a saved player and it's not too old (less than 1 hour)
-        if let playerData = UserDefaults.standard.data(forKey: "lastSearchedPlayer"),
-           let savedTimestamp = UserDefaults.standard.object(forKey: "lastSearchTimestamp") as? Date,
-           Date().timeIntervalSince(savedTimestamp) < 3600 { // 1 hour
-            
-            do {
-                let decoder = JSONDecoder()
-                let savedPlayer = try decoder.decode(Player.self, from: playerData)
-                
-                // Restore state and show player stats
-                self.player = savedPlayer
-                self.playerTag = savedPlayer.tag
-                self.showPlayerStats = true
-            } catch {
-                print("Failed to load player from UserDefaults: \(error)")
-            }
-        }
+    // Clear everything for a fresh search
+    func clearAll() {
+        searchTag = ""
+        player = nil
+        errorMessage = nil
+        showError = false
+        showSuccess = false
     }
 }

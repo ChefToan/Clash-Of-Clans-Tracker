@@ -6,90 +6,112 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		549BCC1D2E1894D7007F387A /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC1C2E1894D7007F387A /* Kingfisher */; };
+		549BCC252E1895BC007F387A /* AlertToast in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC242E1895BC007F387A /* AlertToast */; };
+		549BCC352E18A4F4007F387A /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 549BCC342E18A4F4007F387A /* Lottie */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		549BCC322E189DA7007F387A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		03B21DAC2D8CD01C00838329 /* ClashOfClansTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClashOfClansTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		549BCB4C2E166041007F387A /* ClashOfClansTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClashOfClansTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		038525D92DB6C128005BB350 /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */ = {
+		549BCC1A2E189016007F387A /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 03B21DAB2D8CD01C00838329 /* ClashOfClansTracker */;
+			target = 549BCB4B2E166041007F387A /* ClashOfClansTracker */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		03B21DAE2D8CD01C00838329 /* ClashOfClansTracker */ = {
+		549BCB4E2E166041007F387A /* ClashOfClansTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				038525D92DB6C128005BB350 /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */,
+				549BCC1A2E189016007F387A /* Exceptions for "ClashOfClansTracker" folder in "ClashOfClansTracker" target */,
 			);
 			path = ClashOfClansTracker;
 			sourceTree = "<group>";
 		};
-		03B21DC02D8CD09A00838329 /* App */ = {
+		549BCB5B2E16607D007F387A /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = App;
 			sourceTree = "<group>";
 		};
-		03B21DC32D8CD12D00838329 /* Models */ = {
+		549BCB602E1660CD007F387A /* Models */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Models;
 			sourceTree = "<group>";
 		};
-		03B21DC62D8CD14F00838329 /* Services */ = {
+		549BCB672E1660FA007F387A /* Services */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Services;
 			sourceTree = "<group>";
 		};
-		03B21DCC2D8CD1AE00838329 /* Utils */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Utils;
-			sourceTree = "<group>";
-		};
-		03B21DD02D8CD1E400838329 /* ViewModels */ = {
+		549BCB682E166103007F387A /* ViewModels */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		03B21DD52D8CD21300838329 /* Views */ = {
+		549BCB692E166113007F387A /* Views */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Views;
+			sourceTree = "<group>";
+		};
+		549BCB6D2E16613C007F387A /* Utils */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Utils;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		03B21DA92D8CD01C00838329 /* Frameworks */ = {
+		549BCB492E166041007F387A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				549BCC1D2E1894D7007F387A /* Kingfisher in Frameworks */,
+				549BCC252E1895BC007F387A /* AlertToast in Frameworks */,
+				549BCC352E18A4F4007F387A /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		03B21DA32D8CD01C00838329 = {
+		549BCB432E166041007F387A = {
 			isa = PBXGroup;
 			children = (
-				03B21DD52D8CD21300838329 /* Views */,
-				03B21DD02D8CD1E400838329 /* ViewModels */,
-				03B21DCC2D8CD1AE00838329 /* Utils */,
-				03B21DC62D8CD14F00838329 /* Services */,
-				03B21DC32D8CD12D00838329 /* Models */,
-				03B21DC02D8CD09A00838329 /* App */,
-				03B21DAE2D8CD01C00838329 /* ClashOfClansTracker */,
-				03B21DAD2D8CD01C00838329 /* Products */,
+				549BCB6D2E16613C007F387A /* Utils */,
+				549BCB692E166113007F387A /* Views */,
+				549BCB682E166103007F387A /* ViewModels */,
+				549BCB672E1660FA007F387A /* Services */,
+				549BCB602E1660CD007F387A /* Models */,
+				549BCB5B2E16607D007F387A /* App */,
+				549BCB4E2E166041007F387A /* ClashOfClansTracker */,
+				549BCB4D2E166041007F387A /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		03B21DAD2D8CD01C00838329 /* Products */ = {
+		549BCB4D2E166041007F387A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				03B21DAC2D8CD01C00838329 /* ClashOfClansTracker.app */,
+				549BCB4C2E166041007F387A /* ClashOfClansTracker.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -97,71 +119,80 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		03B21DAB2D8CD01C00838329 /* ClashOfClansTracker */ = {
+		549BCB4B2E166041007F387A /* ClashOfClansTracker */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 03B21DBD2D8CD01D00838329 /* Build configuration list for PBXNativeTarget "ClashOfClansTracker" */;
+			buildConfigurationList = 549BCB582E166042007F387A /* Build configuration list for PBXNativeTarget "ClashOfClansTracker" */;
 			buildPhases = (
-				03B21DA82D8CD01C00838329 /* Sources */,
-				03B21DA92D8CD01C00838329 /* Frameworks */,
-				03B21DAA2D8CD01C00838329 /* Resources */,
+				549BCB482E166041007F387A /* Sources */,
+				549BCB492E166041007F387A /* Frameworks */,
+				549BCB4A2E166041007F387A /* Resources */,
+				549BCC322E189DA7007F387A /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				03B21DAE2D8CD01C00838329 /* ClashOfClansTracker */,
-				03B21DC02D8CD09A00838329 /* App */,
-				03B21DC32D8CD12D00838329 /* Models */,
-				03B21DC62D8CD14F00838329 /* Services */,
-				03B21DCC2D8CD1AE00838329 /* Utils */,
-				03B21DD02D8CD1E400838329 /* ViewModels */,
-				03B21DD52D8CD21300838329 /* Views */,
+				549BCB4E2E166041007F387A /* ClashOfClansTracker */,
+				549BCB5B2E16607D007F387A /* App */,
+				549BCB602E1660CD007F387A /* Models */,
+				549BCB672E1660FA007F387A /* Services */,
+				549BCB682E166103007F387A /* ViewModels */,
+				549BCB692E166113007F387A /* Views */,
+				549BCB6D2E16613C007F387A /* Utils */,
 			);
 			name = ClashOfClansTracker;
 			packageProductDependencies = (
+				549BCC1C2E1894D7007F387A /* Kingfisher */,
+				549BCC242E1895BC007F387A /* AlertToast */,
+				549BCC342E18A4F4007F387A /* Lottie */,
 			);
 			productName = ClashOfClansTracker;
-			productReference = 03B21DAC2D8CD01C00838329 /* ClashOfClansTracker.app */;
+			productReference = 549BCB4C2E166041007F387A /* ClashOfClansTracker.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		03B21DA42D8CD01C00838329 /* Project object */ = {
+		549BCB442E166041007F387A /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
-					03B21DAB2D8CD01C00838329 = {
-						CreatedOnToolsVersion = 16.2;
-						LastSwiftMigration = 1620;
+					549BCB4B2E166041007F387A = {
+						CreatedOnToolsVersion = 16.4;
+						LastSwiftMigration = 1640;
 					};
 				};
 			};
-			buildConfigurationList = 03B21DA72D8CD01C00838329 /* Build configuration list for PBXProject "ClashOfClansTracker" */;
+			buildConfigurationList = 549BCB472E166041007F387A /* Build configuration list for PBXProject "ClashOfClansTracker" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 03B21DA32D8CD01C00838329;
+			mainGroup = 549BCB432E166041007F387A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */,
+				549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 03B21DAD2D8CD01C00838329 /* Products */;
+			productRefGroup = 549BCB4D2E166041007F387A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				03B21DAB2D8CD01C00838329 /* ClashOfClansTracker */,
+				549BCB4B2E166041007F387A /* ClashOfClansTracker */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		03B21DAA2D8CD01C00838329 /* Resources */ = {
+		549BCB4A2E166041007F387A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -171,7 +202,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		03B21DA82D8CD01C00838329 /* Sources */ = {
+		549BCB482E166041007F387A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -181,7 +212,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		03B21DBB2D8CD01D00838329 /* Debug */ = {
+		549BCB562E166042007F387A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -216,6 +247,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = WPXV753AZY;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -242,7 +274,7 @@
 			};
 			name = Debug;
 		};
-		03B21DBC2D8CD01D00838329 /* Release */ = {
+		549BCB572E166042007F387A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -277,6 +309,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = WPXV753AZY;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -295,7 +328,7 @@
 			};
 			name = Release;
 		};
-		03B21DBE2D8CD01D00838329 /* Debug */ = {
+		549BCB592E166042007F387A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -304,13 +337,11 @@
 				CODE_SIGN_ENTITLEMENTS = ClashOfClansTracker/ClashOfClansTracker.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ClashOfClansTracker/Preview Content\"";
 				DEVELOPMENT_TEAM = WPXV753AZY;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ClashOfClansTracker/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app wants to save image to your library";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -321,24 +352,25 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = ClashOfClansTracker;
+				PRODUCT_BUNDLE_IDENTIFIER = asu.ClashOfClansTracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.2;
+				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
 		};
-		03B21DBF2D8CD01D00838329 /* Release */ = {
+		549BCB5A2E166042007F387A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -347,13 +379,11 @@
 				CODE_SIGN_ENTITLEMENTS = ClashOfClansTracker/ClashOfClansTracker.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"ClashOfClansTracker/Preview Content\"";
 				DEVELOPMENT_TEAM = WPXV753AZY;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ClashOfClansTracker/Info.plist;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = " This app requires your location";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "This app wants to save image to your library";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -364,44 +394,90 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = ClashOfClansTracker;
+				PRODUCT_BUNDLE_IDENTIFIER = asu.ClashOfClansTracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.2;
+				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		03B21DA72D8CD01C00838329 /* Build configuration list for PBXProject "ClashOfClansTracker" */ = {
+		549BCB472E166041007F387A /* Build configuration list for PBXProject "ClashOfClansTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				03B21DBB2D8CD01D00838329 /* Debug */,
-				03B21DBC2D8CD01D00838329 /* Release */,
+				549BCB562E166042007F387A /* Debug */,
+				549BCB572E166042007F387A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		03B21DBD2D8CD01D00838329 /* Build configuration list for PBXNativeTarget "ClashOfClansTracker" */ = {
+		549BCB582E166042007F387A /* Build configuration list for PBXNativeTarget "ClashOfClansTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				03B21DBE2D8CD01D00838329 /* Debug */,
-				03B21DBF2D8CD01D00838329 /* Release */,
+				549BCB592E166042007F387A /* Debug */,
+				549BCB5A2E166042007F387A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.4.0;
+			};
+		};
+		549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/elai950/AlertToast";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.9;
+			};
+		};
+		549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		549BCC1C2E1894D7007F387A /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC1B2E1894D7007F387A /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		549BCC242E1895BC007F387A /* AlertToast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC232E1895BC007F387A /* XCRemoteSwiftPackageReference "AlertToast" */;
+			productName = AlertToast;
+		};
+		549BCC342E18A4F4007F387A /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 549BCC332E18A4F4007F387A /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 03B21DA42D8CD01C00838329 /* Project object */;
+	rootObject = 549BCB442E166041007F387A /* Project object */;
 }

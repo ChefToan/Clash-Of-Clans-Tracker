@@ -1,307 +1,190 @@
 // APIService.swift
 import Foundation
-import Combine
-import SwiftUI
 
 class APIService {
-    // Add this method to the existing APIService.swift file
-    func getPlayerAsync(tag: String) async throws -> Player {
-        // Ensure tag has # and is properly URL encoded
-        let formattedTag = tag.hasPrefix("#") ? tag : "#\(tag)"
-        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            throw NSError(
-                domain: "APIService",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid player tag format"]
-            )
+    static let shared = APIService()
+    
+    private let baseURL = "https://api.cheftoan.com"
+    private let cacheTimeout: TimeInterval = 300 // 5 minutes in seconds
+    
+    private lazy var cache: URLCache = {
+        // Create a custom cache with 5-minute expiration
+        return URLCache(
+            memoryCapacity: 10 * 1024 * 1024,  // 10 MB
+            diskCapacity: 50 * 1024 * 1024,     // 50 MB
+            diskPath: "clash_api_cache"
+        )
+    }()
+    
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.urlCache = cache
+        config.requestCachePolicy = .useProtocolCachePolicy
+        config.timeoutIntervalForRequest = 30
+        return URLSession(configuration: config)
+    }()
+    
+    private init() {}
+    
+    // Get player essentials with 5-minute caching
+    func getPlayerEssentials(tag: String) async throws -> PlayerEssentials {
+        let formattedTag = formatTag(tag)
+        guard let url = URL(string: "\(baseURL)/player/essentials?tag=\(formattedTag)") else {
+            throw APIError.invalidURL
         }
         
-        // Create URL for the ChefToan API with query parameter
-        guard let url = URL(string: "https://api.cheftoan.com/player?tag=\(encodedTag)") else {
-            throw NSError(
-                domain: "APIService",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]
-            )
-        }
-        
+        // Check if we have a cached response that's still valid
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.cachePolicy = .returnCacheDataElseLoad
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         
-        // Use async/await to make the request
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(
-                domain: "APIService",
-                code: 0,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid response"]
-            )
+        // Check cache validity
+        if let cachedResponse = cache.cachedResponse(for: request),
+           let userInfo = cachedResponse.userInfo,
+           let cacheDate = userInfo["cacheDate"] as? Date,
+           Date().timeIntervalSince(cacheDate) < cacheTimeout {
+            // Cache is still valid, try to use it
+            do {
+                let player = try JSONDecoder().decode(PlayerEssentials.self, from: cachedResponse.data)
+                return player
+            } catch {
+                // If decoding fails, fetch fresh data
+            }
         }
         
-        if httpResponse.statusCode == 200 {
-            // For debugging purposes
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("ChefToan API Response: \(jsonString)")
+        // Fetch fresh data
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
             }
             
-            // Decode the player data
-            return try JSONDecoder().decode(Player.self, from: data)
-        } else {
-            // Try to parse error message from JSON
-            if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = errorDict["message"] as? String {
-                throw NSError(
-                    domain: "ChefToanAPI",
-                    code: httpResponse.statusCode,
-                    userInfo: [NSLocalizedDescriptionKey: message]
-                )
-            } else {
-                throw NSError(
-                    domain: "ChefToanAPI",
-                    code: httpResponse.statusCode,
-                    userInfo: [NSLocalizedDescriptionKey: "Unknown API error"]
-                )
+            guard httpResponse.statusCode == 200 else {
+                if httpResponse.statusCode == 404 {
+                    throw APIError.playerNotFound
+                }
+                throw APIError.serverError(httpResponse.statusCode)
             }
-        }
-    }
-    
-    
-    // MARK: - Player Data from My API (ChefToan API)
-    
-    func getPlayer(tag: String) -> AnyPublisher<Player, Error> {
-        // Ensure tag has # and is properly URL encoded
-        let formattedTag = tag.hasPrefix("#") ? tag : "#\(tag)"
-        guard let encodedTag = formattedTag.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            let error = NSError(
-                domain: "APIService",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid player tag format"]
+            
+            // Store the response with cache date
+            let cachedResponse = CachedURLResponse(
+                response: response,
+                data: data,
+                userInfo: ["cacheDate": Date()],
+                storagePolicy: .allowed
             )
-            return Fail(error: error).eraseToAnyPublisher()
+            cache.storeCachedResponse(cachedResponse, for: request)
+            
+            do {
+                let player = try JSONDecoder().decode(PlayerEssentials.self, from: data)
+                return player
+            } catch {
+                print("Decoding error: \(error)")
+                throw APIError.decodingError
+            }
+        } catch {
+            if error is APIError {
+                throw error
+            }
+            throw APIError.networkError(error.localizedDescription)
+        }
+    }
+    
+    // Get chart URL with cache busting
+    func getChartURL(tag: String) -> URL? {
+        let formattedTag = formatTag(tag)
+        // Add timestamp to URL to bust cache every 5 minutes
+        let timestamp = Int(Date().timeIntervalSince1970 / cacheTimeout) * Int(cacheTimeout)
+        let urlString = "\(baseURL)/chart?tag=\(formattedTag)&t=\(timestamp)"
+        return URL(string: urlString)
+    }
+    
+    // Force refresh by bypassing cache
+    func refreshPlayerEssentials(tag: String) async throws -> PlayerEssentials {
+        let formattedTag = formatTag(tag)
+        guard let url = URL(string: "\(baseURL)/player/essentials?tag=\(formattedTag)") else {
+            throw APIError.invalidURL
         }
         
-        // Create URL for the ChefToan API with query parameter
-        guard let url = URL(string: "https://api.cheftoan.com/player?tag=\(encodedTag)") else {
-            let error = NSError(
-                domain: "APIService",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard httpResponse.statusCode == 200 else {
+                if httpResponse.statusCode == 404 {
+                    throw APIError.playerNotFound
+                }
+                throw APIError.serverError(httpResponse.statusCode)
+            }
+            
+            // Store the fresh response with cache date
+            let cachedResponse = CachedURLResponse(
+                response: response,
+                data: data,
+                userInfo: ["cacheDate": Date()],
+                storagePolicy: .allowed
             )
-            return Fail(error: error).eraseToAnyPublisher()
+            cache.storeCachedResponse(cachedResponse, for: request)
+            
+            do {
+                let player = try JSONDecoder().decode(PlayerEssentials.self, from: data)
+                return player
+            } catch {
+                print("Decoding error: \(error)")
+                throw APIError.decodingError
+            }
+        } catch {
+            if error is APIError {
+                throw error
+            }
+            throw APIError.networkError(error.localizedDescription)
         }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        
-        return URLSession.shared.dataTaskPublisher(for: request)
-            .tryMap { (data: Data, response: URLResponse) in
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw NSError(
-                        domain: "APIService",
-                        code: 0,
-                        userInfo: [NSLocalizedDescriptionKey: "Invalid response"]
-                    )
-                }
-                
-                if httpResponse.statusCode == 200 {
-                    // For debugging purposes
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("ChefToan API Response: \(jsonString)")
-                    }
-                    return data
-                } else {
-                    // Try to parse error message from JSON
-                    if let errorDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let message = errorDict["message"] as? String {
-                        throw NSError(
-                            domain: "ChefToanAPI",
-                            code: httpResponse.statusCode,
-                            userInfo: [NSLocalizedDescriptionKey: message]
-                        )
-                    } else {
-                        throw NSError(
-                            domain: "ChefToanAPI",
-                            code: httpResponse.statusCode,
-                            userInfo: [NSLocalizedDescriptionKey: "Unknown API error"]
-                        )
-                    }
-                }
-            }
-            .decode(type: Player.self, decoder: JSONDecoder())
-            .catch { error -> AnyPublisher<Player, Error> in
-                print("Error fetching player data: \(error.localizedDescription)")
-                return Fail(error: error).eraseToAnyPublisher()
-            }
-            .eraseToAnyPublisher()
     }
     
-    // MARK: - Player Rankings from ClashKing API
-    
-    func getPlayerRankings(tag: String) -> AnyPublisher<PlayerRankings, Error> {
-        // Remove the # from the tag for ClashKing API
-        let tagWithoutHash = tag.replacingOccurrences(of: "#", with: "")
-        guard let url = URL(string: "https://api.clashk.ing/player/\(tagWithoutHash)/legends") else {
-            let error = NSError(
-                domain: "APIService",
-                code: 400,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid URL for rankings API"]
-            )
-            return Fail(error: error).eraseToAnyPublisher()
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        
-        return URLSession.shared.dataTaskPublisher(for: request)
-            .tryMap { (data: Data, response: URLResponse) in
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw NSError(
-                        domain: "APIService",
-                        code: 0,
-                        userInfo: [NSLocalizedDescriptionKey: "Invalid response"]
-                    )
-                }
-                
-                if httpResponse.statusCode == 200 {
-                    // Convert data to string for debugging
-                    if let jsonString = String(data: data, encoding: .utf8) {
-                        print("ClashKing API Response: \(jsonString)")
-                    }
-                    
-                    // Try to parse using JSONSerialization first to understand structure
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        print("JSON Parsed: \(json)")
-                        
-                        // Extract the rankings part directly
-                        if let rankings = json["rankings"] as? [String: Any] {
-                            let localRank = rankings["local_rank"] as? Int
-                            let globalRank = rankings["global_rank"] as? Int
-                            let countryCode = rankings["country_code"] as? String ?? "US"
-                            let countryName = rankings["country_name"] as? String ?? "United States"
-                            let streak = json["streak"] as? Int ?? 0
-                            
-                            // Create PlayerRankings object manually
-                            let rankingsObj = PlayerRankings(
-                                tag: "#\(tagWithoutHash)",
-                                countryCode: countryCode,
-                                countryName: countryName,
-                                localRank: localRank,
-                                builderGlobalRank: rankings["builder_global_rank"] as? Int,
-                                builderLocalRank: rankings["builder_local_rank"] as? Int,
-                                globalRank: globalRank,
-                                streak: streak
-                            )
-                            
-                            return rankingsObj
-                        }
-                    }
-                    
-                    // If we couldn't parse manually, try the regular decode
-                    return try JSONDecoder().decode(ClashKingResponse.self, from: data).rankings
-                } else {
-                    throw NSError(
-                        domain: "ClashKingAPI",
-                        code: httpResponse.statusCode,
-                        userInfo: [NSLocalizedDescriptionKey: "Failed to fetch rankings data"]
-                    )
-                }
-            }
-            .catch { error -> AnyPublisher<PlayerRankings, Error> in
-                print("Error with ClashKing API: \(error.localizedDescription)")
-                
-                // Create a fallback value
-                return Just(PlayerRankings(
-                    tag: "#\(tagWithoutHash)",
-                    countryCode: "US",
-                    countryName: "United States",
-                    localRank: 0,
-                    builderGlobalRank: nil,
-                    builderLocalRank: nil,
-                    globalRank: 0,
-                    streak: 0
-                ))
-                .setFailureType(to: Error.self)
-                .eraseToAnyPublisher()
-            }
-            .eraseToAnyPublisher()
+    // Clear expired cache entries
+    func clearExpiredCache() {
+        cache.removeAllCachedResponses()
     }
     
-    // MARK: - Chart Image from external server
-    
-    func getPlayerChartImageURL(tag: String) -> URL? {
-        // Format the tag for the URL - remove # if it exists, then properly encode for query parameter
-        let formattedTag = tag.replacingOccurrences(of: "#", with: "").uppercased()
-        let tagWithHash = "#\(formattedTag)"
-        
-        guard let encodedTag = tagWithHash.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            return nil
-        }
-        
-        return URL(string: "https://api.cheftoan.com/chart?tag=\(encodedTag)")
-    }
-    
-    // MARK: - Loading League and Clan Icons
-    
-    func loadImage(from urlString: String) -> AnyPublisher<UIImage?, Error> {
-        guard let url = URL(string: urlString) else {
-            return Fail(error: URLError(.badURL)).eraseToAnyPublisher()
-        }
-        
-        return URLSession.shared.dataTaskPublisher(for: url)
-            .tryMap { data, response -> UIImage? in
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    throw URLError(.badServerResponse)
-                }
-                return UIImage(data: data)
-            }
-            .eraseToAnyPublisher()
+    private func formatTag(_ tag: String) -> String {
+        var formatted = tag.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        // Remove any # symbols first
+        formatted = formatted.replacingOccurrences(of: "#", with: "")
+        // Then add back a single # at the beginning
+        formatted = "#\(formatted)"
+        return formatted.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? formatted
     }
 }
 
-// Simple struct to hold ClashKing API response
-struct ClashKingResponse: Codable {
-    let rankings: PlayerRankings
-    let streak: Int
-}
-
-// Model for PlayerRankings
-public struct PlayerRankings: Codable {
-    public let tag: String
-    public let countryCode: String
-    public let countryName: String
-    public let localRank: Int?
-    public let builderGlobalRank: Int?
-    public let builderLocalRank: Int?
-    public let globalRank: Int?
-    public let streak: Int
+enum APIError: LocalizedError {
+    case invalidURL
+    case invalidResponse
+    case playerNotFound
+    case serverError(Int)
+    case decodingError
+    case networkError(String)
     
-    enum CodingKeys: String, CodingKey {
-        case tag
-        case countryCode = "country_code"
-        case countryName = "country_name"
-        case localRank = "local_rank"
-        case builderGlobalRank = "builder_global_rank"
-        case builderLocalRank = "builder_local_rank"
-        case globalRank = "global_rank"
-        case streak
-    }
-    
-    // Custom initializer for creating from scratch or fallback
-    init(tag: String, countryCode: String, countryName: String,
-         localRank: Int?, builderGlobalRank: Int?, builderLocalRank: Int?,
-         globalRank: Int?, streak: Int = 0) {
-        self.tag = tag
-        self.countryCode = countryCode
-        self.countryName = countryName
-        self.localRank = localRank
-        self.builderGlobalRank = builderGlobalRank
-        self.builderLocalRank = builderLocalRank
-        self.globalRank = globalRank
-        self.streak = streak
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .playerNotFound:
+            return "Player not found. Please check the tag and try again."
+        case .serverError(let code):
+            return "Server error: \(code)"
+        case .decodingError:
+            return "Failed to decode response"
+        case .networkError(let message):
+            return "Network error: \(message)"
+        }
     }
 }
