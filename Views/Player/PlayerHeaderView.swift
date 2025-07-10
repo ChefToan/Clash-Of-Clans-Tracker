@@ -58,10 +58,15 @@ struct PlayerHeaderView: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    // Clan Info
-                    if let clan = player.clan {
+                    // Vertical Divider
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 120)
+
+                    // Clan Info - Check if clan actually has a valid name
+                    if let clan = player.clan, clan.name != nil && !clan.name!.isEmpty && clan.name != "No Clan" {
                         VStack(spacing: 8) {
-                            Text(clan.name ?? "Unknown Clan")
+                            Text(clan.name!)
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
@@ -93,21 +98,47 @@ struct PlayerHeaderView: View {
                                     .foregroundColor(.gray)
                             }
 
-                            if let role = player.role {
-                                Text(formatRole(role))
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
-                                    .background(Constants.blue)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(6)
-                            }
+                            // Show role badge - default to Member if role is nil
+                            Text(player.role != nil ? formatRole(player.role!) : "Member")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Constants.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(6)
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        Spacer()
-                            .frame(maxWidth: .infinity)
+                        // No clan case
+                        VStack(spacing: 8) {
+                            Text("No Clan")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+
+                            Text("#UNKNOWN")
+                                .font(.caption)
+                                .foregroundColor(.gray.opacity(0.7))
+
+                            Image(systemName: "shield.slash.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 60, height: 60)
+                                .foregroundColor(.gray)
+
+                            Text("No Role")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 4)
+                                .background(Color.gray.opacity(0.5))
+                                .foregroundColor(.white)
+                                .cornerRadius(6)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.vertical, 8)

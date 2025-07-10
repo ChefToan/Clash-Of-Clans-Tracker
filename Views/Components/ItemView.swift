@@ -99,7 +99,7 @@ struct ItemView: View {
                                     "Giant Gauntlet", "Snake Bracelet", "Spiky Ball", "Archer Puppet",
                                     "Invisibility Vial", "Giant Arrow", "Healer Puppet", "Action Figure",
                                     "Frozen Arrow", "Magic Mirror", "Dark Orb", "Henchmen Puppet",
-                                    "Metal Pants", "Noble Iron", "Eternal Tome", "Life Gem",
+                                    "Metal Pants", "Noble Iron", "Dark Crown" ,"Eternal Tome", "Life Gem",
                                     "Healing Tome", "Rage Gem", "Lavaloon Puppet", "Fireball",
                                     "Royal Gem", "Seeking Shield", "Haste Vial", "Hog Rider Puppet",
                                     "Electro Boots", "Rocket Spear"]
