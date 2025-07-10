@@ -45,10 +45,11 @@ class APIService {
            Date().timeIntervalSince(cacheDate) < cacheTimeout {
             // Cache is still valid, try to use it
             do {
-                let player = try JSONDecoder().decode(PlayerEssentials.self, from: cachedResponse.data)
+                let player = try decodePlayerEssentials(from: cachedResponse.data)
                 return player
             } catch {
                 // If decoding fails, fetch fresh data
+                print("Failed to decode cached data: \(error)")
             }
         }
         
@@ -76,13 +77,8 @@ class APIService {
             )
             cache.storeCachedResponse(cachedResponse, for: request)
             
-            do {
-                let player = try JSONDecoder().decode(PlayerEssentials.self, from: data)
-                return player
-            } catch {
-                print("Decoding error: \(error)")
-                throw APIError.decodingError
-            }
+            let player = try decodePlayerEssentials(from: data)
+            return player
         } catch {
             if error is APIError {
                 throw error
@@ -133,18 +129,68 @@ class APIService {
             )
             cache.storeCachedResponse(cachedResponse, for: request)
             
-            do {
-                let player = try JSONDecoder().decode(PlayerEssentials.self, from: data)
-                return player
-            } catch {
-                print("Decoding error: \(error)")
-                throw APIError.decodingError
-            }
+            let player = try decodePlayerEssentials(from: data)
+            return player
         } catch {
             if error is APIError {
                 throw error
             }
             throw APIError.networkError(error.localizedDescription)
+        }
+    }
+    
+    // Enhanced decoding with better error handling
+    private func decodePlayerEssentials(from data: Data) throws -> PlayerEssentials {
+        let decoder = JSONDecoder()
+        
+        do {
+            return try decoder.decode(PlayerEssentials.self, from: data)
+        } catch let DecodingError.keyNotFound(key, context) {
+            print("Decoding error - Key not found: \(key)")
+            print("Context: \(context)")
+            print("Coding path: \(context.codingPath)")
+            
+            // Print the raw JSON for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Raw JSON response:")
+                print(jsonString)
+            }
+            
+            throw APIError.decodingError
+        } catch let DecodingError.valueNotFound(value, context) {
+            print("Decoding error - Value not found: \(value)")
+            print("Context: \(context)")
+            print("Coding path: \(context.codingPath)")
+            
+            // Print the raw JSON for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Raw JSON response:")
+                print(jsonString)
+            }
+            
+            throw APIError.decodingError
+        } catch let DecodingError.typeMismatch(type, context) {
+            print("Decoding error - Type mismatch: \(type)")
+            print("Context: \(context)")
+            print("Coding path: \(context.codingPath)")
+            
+            // Print the raw JSON for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Raw JSON response:")
+                print(jsonString)
+            }
+            
+            throw APIError.decodingError
+        } catch {
+            print("General decoding error: \(error)")
+            
+            // Print the raw JSON for debugging
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Raw JSON response:")
+                print(jsonString)
+            }
+            
+            throw APIError.decodingError
         }
     }
     
@@ -182,7 +228,7 @@ enum APIError: LocalizedError {
         case .serverError(let code):
             return "Server error: \(code)"
         case .decodingError:
-            return "Failed to decode response"
+            return "Failed to decode response. This might be due to incomplete data from the server."
         case .networkError(let message):
             return "Network error: \(message)"
         }

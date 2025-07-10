@@ -28,37 +28,43 @@ struct LeagueInfoView: View {
                     // Current League - Left Side
                     VStack(spacing: 12) {
                         Text("Current League")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                            .font(.headline)
+                            .fontWeight(.bold)
                             .foregroundColor(.white)
                         
                         if let leagueIcon = getLeagueIcon(for: player.league) {
                             Image(leagueIcon)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 60, height: 60)
+                                .frame(width: 70, height: 70)
                         } else {
                             Image(systemName: "shield.fill")
-                                .font(.system(size: 45))
+                                .font(.system(size: 50))
                                 .foregroundColor(Constants.purple)
                         }
                         
                         if let league = player.league {
-                            Text(league.name)
-                                .font(.caption)
-                                .fontWeight(.semibold)
+                            Text(league.safeName)
+                                .font(.subheadline)
+                                .fontWeight(.bold)
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
+                        } else {
+                            Text("Unranked")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
                         }
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Image(systemName: "trophy.fill")
                                 .foregroundColor(.yellow)
-                                .font(.caption)
+                                .font(.subheadline)
 
                             Text(formatNumber(player.trophies))
-                                .font(.title3)
+                                .font(.title2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.yellow)
                         }
@@ -68,42 +74,42 @@ struct LeagueInfoView: View {
                     // Vertical Divider
                     Rectangle()
                         .fill(Color.gray.opacity(0.3))
-                        .frame(width: 1, height: 100)
+                        .frame(width: 1, height: 120)
                     
                     // All-time Best - Right Side
                     VStack(spacing: 12) {
                         Text("All-time Best")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                            .font(.headline)  // Changed from .subheadline to .headline
+                            .fontWeight(.bold)  // Changed from .semibold to .bold
                             .foregroundColor(.white)
 
                         if let bestLeagueIcon = getBestLeagueIcon(trophies: player.bestTrophies) {
                             Image(bestLeagueIcon)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(width: 60, height: 60)
+                                .frame(width: 70, height: 70)  // Changed from 60 to 70 to match current league
                         } else {
                             Image(systemName: "shield.fill")
-                                .font(.system(size: 45))
+                                .font(.system(size: 50))  // Changed from 45 to 50 to match current league
                                 .foregroundColor(Constants.purple.opacity(0.8))
                         }
 
                         if let bestLeagueName = getBestLeagueName(trophies: player.bestTrophies) {
                             Text(bestLeagueName)
-                                .font(.caption)
-                                .fontWeight(.semibold)
+                                .font(.subheadline)  // Changed from .caption to .subheadline
+                                .fontWeight(.bold)  // Changed from .semibold to .bold
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                                 .lineLimit(2)
                         }
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {  // Changed from spacing: 4 to spacing: 6 to match current league
                             Image(systemName: "trophy.fill")
                                 .foregroundColor(.yellow)
-                                .font(.caption)
+                                .font(.subheadline)  // Changed from .caption to .subheadline
 
                             Text(formatNumber(player.bestTrophies))
-                                .font(.title3)
+                                .font(.title2)  // Changed from .title3 to .title2
                                 .fontWeight(.bold)
                                 .foregroundColor(.yellow)
                         }
@@ -117,43 +123,45 @@ struct LeagueInfoView: View {
                         .background(Color.gray.opacity(0.3))
                         .padding(.horizontal)
                     
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         Text("Current Rankings")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                            .font(.headline)
+                            .fontWeight(.bold)
                             .foregroundColor(.white)
 
-                        HStack(spacing: 40) {
-                            VStack(spacing: 6) {
+                        HStack(spacing: 50) {
+                            VStack(spacing: 8) {
                                 Text("Global")
-                                    .font(.caption)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
                                     .foregroundColor(.secondary)
 
                                 if let rank = legends.globalRank {
                                     Text("#\(formatNumber(rank))")
-                                        .font(.title3)
+                                        .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
                                 } else {
                                     Text("Unranked")
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
                             }
 
-                            VStack(spacing: 6) {
+                            VStack(spacing: 8) {
                                 Text("Local")
-                                    .font(.caption)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
                                     .foregroundColor(.secondary)
 
                                 if let rank = legends.localRank {
                                     Text("#\(formatNumber(rank))")
-                                        .font(.title3)
+                                        .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
                                 } else {
                                     Text("Unranked")
-                                        .font(.caption)
+                                        .font(.subheadline)
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -175,9 +183,9 @@ struct LeagueInfoView: View {
     }
     
     private func getLeagueIcon(for league: LeagueInfo?) -> String? {
-        guard let league = league else { return nil }
+        guard let league = league else { return "league_unranked" }
         
-        let leagueName = league.name.lowercased()
+        let leagueName = league.safeName.lowercased()
         
         if leagueName.contains("bronze") {
             return "league_bronze"
@@ -199,7 +207,7 @@ struct LeagueInfoView: View {
             return "league_unranked"
         }
         
-        return nil
+        return "league_unranked"
     }
     
     private func getBestLeagueIcon(trophies: Int) -> String? {

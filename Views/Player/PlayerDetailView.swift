@@ -73,7 +73,8 @@ struct PlayerDetailView: View {
                     PlayerHeaderView(player: player)
                         .transition(.scale.combined(with: .opacity))
                     
-                    if player.league?.name.contains("Legend") == true {
+                    // Updated to use the safe legend check
+                    if player.isInLegendsLeague {
                         TrophyChartView(playerTag: player.playerTag)
                             .transition(.scale.combined(with: .opacity))
                     }

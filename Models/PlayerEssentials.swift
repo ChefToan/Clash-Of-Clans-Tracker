@@ -35,6 +35,12 @@ struct PlayerEssentials: Codable, Identifiable, Hashable {
         return achievements?.value ?? trophies
     }
     
+    // Computed property to check if player is in Legend League
+    var isInLegendsLeague: Bool {
+        guard let league = self.league else { return false }
+        return league.safeName.lowercased().contains("legend")
+    }
+    
     // Hashable conformance
     func hash(into hasher: inout Hasher) {
         hasher.combine(playerTag)
@@ -45,12 +51,35 @@ struct PlayerEssentials: Codable, Identifiable, Hashable {
     }
 }
 
-// Supporting models
+// Supporting models - Made ClanInfo properties optional to handle incomplete data
 struct ClanInfo: Codable, Hashable {
-    let name: String
-    let tag: String
-    let badgeUrls: BadgeUrls
-    let clanLevel: Int
+    let name: String?
+    let tag: String?
+    let badgeUrls: BadgeUrls?
+    let clanLevel: Int?
+    
+    // Computed properties to provide safe defaults
+    var safeName: String {
+        if let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return name
+        }
+        return "No Clan"
+    }
+    
+    var safeTag: String {
+        if let tag = tag, !tag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return tag
+        }
+        return "#UNKNOWN"
+    }
+    
+    var safeBadgeUrls: BadgeUrls {
+        return badgeUrls ?? BadgeUrls(small: "", medium: "", large: "")
+    }
+    
+    var safeClanLevel: Int {
+        return clanLevel ?? 0
+    }
 }
 
 struct BadgeUrls: Codable, Hashable {
@@ -60,7 +89,15 @@ struct BadgeUrls: Codable, Hashable {
 }
 
 struct LeagueInfo: Codable, Hashable {
-    let name: String
+    let name: String?
+    
+    // Computed property to provide safe default
+    var safeName: String {
+        if let name = name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return name
+        }
+        return "Unranked"
+    }
 }
 
 struct Achievement: Codable, Hashable {

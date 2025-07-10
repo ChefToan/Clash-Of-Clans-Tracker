@@ -45,7 +45,8 @@ struct MyProfileView: View {
                             
                             LeagueInfoView(player: player)
                             
-                            if player.league?.name.contains("Legend") == true {
+                            // Updated to use the safe legend check
+                            if player.isInLegendsLeague {
                                 TrophyChartView(playerTag: player.playerTag)
                             }
                             

@@ -30,10 +30,10 @@ struct PlayerStatsView: View {
                 StatRow(label: "Defense Wins", value: formatNumber(player.defenseWins), showDivider: true)
                 StatRow(label: "Capital Contributions", value: formatNumber(player.clanCapitalContributions),
                        showDivider: player.warPreference != nil)
-                
-                if let warPreference = player.warPreference {
-                    StatRow(label: "War Preference", value: warPreference.capitalized, showDivider: false)
-                }
+//                
+//                if let warPreference = player.warPreference {
+//                    StatRow(label: "War Preference", value: warPreference.capitalized, showDivider: false)
+//                }
             }
             .background(Constants.cardBackground)
         }
