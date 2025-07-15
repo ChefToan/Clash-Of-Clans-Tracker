@@ -62,4 +62,4 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 # Exclude Assets.xcassets
-ClashOfClansTracker/Assets.xcassets/
+# ClashOfClansTracker/Assets.xcassets/
