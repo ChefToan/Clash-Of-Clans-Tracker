@@ -7,6 +7,11 @@ class APIService {
     private let baseURL = "https://api.cheftoan.com"
     private let cacheTimeout: TimeInterval = 300 // 5 minutes in seconds
     
+    // API version configuration
+    // Using new API structure with /clash-of-clans/ prefix
+    // Endpoints: /clash-of-clans/player/essentials and /clash-of-clans/chart
+    private let useNewAPIStructure = true
+    
     private lazy var cache: URLCache = {
         // Create a custom cache with 5-minute expiration
         return URLCache(
@@ -26,10 +31,28 @@ class APIService {
     
     private init() {}
     
+    // Helper methods to build correct API URLs
+    private func playerEssentialsURL(tag: String) -> String {
+        let formattedTag = formatTag(tag)
+        if useNewAPIStructure {
+            return "\(baseURL)/clash-of-clans/player/essentials?tag=\(formattedTag)"
+        } else {
+            return "\(baseURL)/player/essentials?tag=\(formattedTag)"
+        }
+    }
+    
+    private func chartURL(tag: String) -> String {
+        let formattedTag = formatTag(tag)
+        if useNewAPIStructure {
+            return "\(baseURL)/clash-of-clans/chart?tag=\(formattedTag)"
+        } else {
+            return "\(baseURL)/chart?tag=\(formattedTag)"
+        }
+    }
+    
     // Get player essentials with 5-minute caching
     func getPlayerEssentials(tag: String) async throws -> PlayerEssentials {
-        let formattedTag = formatTag(tag)
-        guard let url = URL(string: "\(baseURL)/player/essentials?tag=\(formattedTag)") else {
+        guard let url = URL(string: playerEssentialsURL(tag: tag)) else {
             throw APIError.invalidURL
         }
         
@@ -92,14 +115,45 @@ class APIService {
         let formattedTag = formatTag(tag)
         // Add timestamp to URL to bust cache every 5 minutes
         let timestamp = Int(Date().timeIntervalSince1970 / cacheTimeout) * Int(cacheTimeout)
-        let urlString = "\(baseURL)/chart?tag=\(formattedTag)&t=\(timestamp)"
+        let urlString = "\(chartURL(tag: tag))&t=\(timestamp)"
         return URL(string: urlString)
+    }
+    
+    // Fetch chart image
+    func getChartImage(tag: String) async throws -> Data {
+        guard let url = URL(string: chartURL(tag: tag)) else {
+            throw APIError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("image/png", forHTTPHeaderField: "Accept")
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            
+            guard httpResponse.statusCode == 200 else {
+                if httpResponse.statusCode == 404 {
+                    throw APIError.playerNotFound
+                }
+                throw APIError.serverError(httpResponse.statusCode)
+            }
+            
+            return data
+        } catch {
+            if error is APIError {
+                throw error
+            }
+            throw APIError.networkError(error.localizedDescription)
+        }
     }
     
     // Force refresh by bypassing cache
     func refreshPlayerEssentials(tag: String) async throws -> PlayerEssentials {
-        let formattedTag = formatTag(tag)
-        guard let url = URL(string: "\(baseURL)/player/essentials?tag=\(formattedTag)") else {
+        guard let url = URL(string: playerEssentialsURL(tag: tag)) else {
             throw APIError.invalidURL
         }
         

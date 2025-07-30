@@ -5,10 +5,13 @@ import Kingfisher
 struct TrophyChartView: View {
     let playerTag: String
     @State private var showFullScreen = false
-    @State private var hasError = false
     @State private var isLoading = true
+    @State private var hasError = false
     @State private var retryCount = 0
     @State private var lastLoadTime = Date()
+    @State private var loadingTimer: Timer?
+    
+    private let loadingTimeout: TimeInterval = 10.0 // 10 seconds timeout
     
     private var chartURL: URL? {
         APIService.shared.getChartURL(tag: playerTag)
@@ -43,38 +46,75 @@ struct TrophyChartView: View {
                 Color(UIColor.secondarySystemBackground)
                 
                 if let url = chartURL {
-                    KFImage(url)
-                        .setProcessor(DefaultImageProcessor()) // Ensure fresh processing
-                        .cacheOriginalImage() // Cache the original image
-                        .diskCacheExpiration(.seconds(300)) // 5 minute disk cache
-                        .memoryCacheExpiration(.seconds(300)) // 5 minute memory cache
-                        .placeholder {
-                            VStack {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: Constants.blue))
-                                    .scaleEffect(1.2)
-                                Text("Loading chart...")
+                    if hasError {
+                        // Error state - only show when there's an error
+                        VStack(spacing: 10) {
+                            Image(systemName: "chart.line.downtrend.xyaxis")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text("Failed to load chart")
+                                .foregroundColor(.secondary)
+                            
+                            Button {
+                                HapticManager.shared.lightImpactFeedback()
+                                loadingTimer?.invalidate()
+                                hasError = false
+                                isLoading = true
+                                retryCount += 1
+                                startLoadingTimer()
+                            } label: {
+                                Text("Retry")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.top, 8)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Constants.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
                             }
                         }
-                        .onSuccess { _ in
-                            isLoading = false
-                            hasError = false
-                            lastLoadTime = Date()
-                        }
-                        .onFailure { _ in
-                            isLoading = false
-                            hasError = true
-                        }
-                        .fade(duration: 0.3)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .onTapGesture {
-                            HapticManager.shared.lightImpactFeedback()
-                            showFullScreen = true
-                        }
+                    } else {
+                        // Chart or loading state
+                        KFImage(url)
+                            .setProcessor(DefaultImageProcessor())
+                            .cacheOriginalImage()
+                            .diskCacheExpiration(.seconds(300))
+                            .memoryCacheExpiration(.seconds(300))
+                            .placeholder {
+                                if isLoading {
+                                    VStack {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: Constants.blue))
+                                            .scaleEffect(1.2)
+                                        Text("Loading chart...")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .padding(.top, 8)
+                                    }
+                                } else {
+                                    EmptyView()
+                                }
+                            }
+                            .onSuccess { _ in
+                                loadingTimer?.invalidate()
+                                loadingTimer = nil
+                                isLoading = false
+                                hasError = false
+                                lastLoadTime = Date()
+                            }
+                            .onFailure { _ in
+                                loadingTimer?.invalidate()
+                                loadingTimer = nil
+                                isLoading = false
+                                hasError = true
+                            }
+                            .fade(duration: 0.3)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .onTapGesture {
+                                HapticManager.shared.lightImpactFeedback()
+                                showFullScreen = true
+                            }
+                    }
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "exclamationmark.triangle")
@@ -82,32 +122,6 @@ struct TrophyChartView: View {
                             .foregroundColor(.secondary)
                         Text("Invalid player tag")
                             .foregroundColor(.secondary)
-                    }
-                }
-                
-                // Error state
-                if hasError && !isLoading {
-                    VStack(spacing: 10) {
-                        Image(systemName: "chart.line.downtrend.xyaxis")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("Failed to load chart")
-                            .foregroundColor(.secondary)
-                        
-                        Button {
-                            HapticManager.shared.lightImpactFeedback()
-                            retryCount += 1
-                            isLoading = true
-                            hasError = false
-                        } label: {
-                            Text("Retry")
-                                .font(.caption)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Constants.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
                     }
                 }
                 
@@ -144,10 +158,29 @@ struct TrophyChartView: View {
             if Date().timeIntervalSince(lastLoadTime) > 300 { // 5 minutes
                 retryCount += 1 // Force reload
             }
+            // Start loading timer only if we're loading
+            if isLoading && !hasError {
+                startLoadingTimer()
+            }
+        }
+        .onDisappear {
+            // Clean up timer when view disappears
+            loadingTimer?.invalidate()
+            loadingTimer = nil
         }
         .fullScreenCover(isPresented: $showFullScreen) {
             if let url = chartURL {
                 ImageViewer(url: url, isPresented: $showFullScreen)
+            }
+        }
+    }
+    
+    private func startLoadingTimer() {
+        loadingTimer = Timer.scheduledTimer(withTimeInterval: loadingTimeout, repeats: false) { _ in
+            // If still loading after timeout, show error state
+            if isLoading && !hasError {
+                isLoading = false
+                hasError = true
             }
         }
     }
